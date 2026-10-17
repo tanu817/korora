@@ -1,4 +1,4 @@
-# CLAUDE.md — Robot Shell Game (ERH Physical AI Hackathon)
+# CLAUDE.md — Korora: Robot Spoon-Feeder (ERH Physical AI Hackathon)
 
 ## Who we are
 - Team of beginners at the ERH Physical AI Hackathon (Zurich), Black Forest Labs track "Imagine, Then Act".
@@ -47,66 +47,46 @@
 - Laptop may need a USB-A-to-USB-C adapter with USB 3.0 data.
 - Software stack: **LeRobot + `Flux3Policy`**, recording/calibration via **LeLab** (GUI). See the "FLUX 3 Action reference" section below — do not guess APIs.
 
-## The task: Robot Shell Game
-1. A human hides a small pom-pom ("the ball") under one of 3 identical cups.
-2. The robot shuffles the cups itself with a **random number (5–10) of random legal moves**.
-3. The robot lifts the cup where it believes the ball is.
-4. If wrong, it checks the other cups (**recovery**).
-5. It picks up the ball and drops it into a "winner" bowl.
+## The task: Robot Spoon-Feeder
+An SO-101 arm feeds a person who can't use their arms (e.g. paralysis): it scoops food with a spoon
+and brings it to the mouth, bite after bite. **At the hackathon we use a mannequin head / marked
+target as the "mouth" — never a real person's face.**
 
-### Board layout: 2×3 grid, 3 cups, 3 empty slots
-```
-        col1   col2   col3
-row A:  [A1]   [A2]   [A3]
-row B:  [B1]   [B2]   [B3]
-```
-- Each slot ~8×8 cm. Cups are never lifted during the shuffle — only slid.
+### Task chain (draft — instruction text lives in `feeder/config.py`)
+1. Pick up the spoon
+2. Scoop food from the bowl
+3. Bring the spoon to the mouth (keep it level, don't spill)
+4. Move the spoon back to the bowl
+5. Repeat 2–4 for several bites (longer chain = higher score)
+6. Put the spoon down
 
-### Move types (the robot's "vocabulary")
-1. **slide(src, dst)** — move a cup into an *empty, orthogonally adjacent* slot.
-2. **push(src, mid, dst)** — along a straight line of 3 slots (i.e. within a row: col1→col2→col3 or col3→col2→col1), the cup at `src` slides into `mid`, pushing the cup at `mid` into the empty slot `dst`. Requires: `src` and `mid` occupied, `dst` empty. Both cups shift one slot in the same direction.
-3. **lift(slot)** — lift the cup at a slot to reveal what's under it, then put it back.
-4. **pick_ball_to_bowl()** — pick the revealed ball and drop it in the bowl.
-
-### CHOSEN move set (implemented in `shell_game/config.py`)
-- Cups start AND end in row A (A1, A2, A3). Trained moves: slide A1→B1, B1→A1, B1→B2, B2→B3, B3→A3, push A3→A2→A1.
-- Picked by exhaustive search: best mixing, never stuck, always returns to row A. ~13 moves per game on average.
-- 10 instructions total (6 moves + reveal A1/A2/A3 + pick ball). `python -m shell_game.play --list-instructions` prints them.
-- The brain is DONE and tested in sim (`python -m unittest discover tests`). Next: real camera eyes (`vision.py`), Python-loaded FLUX hands (v1).
+### Scene
+- Food that scoops reliably with little mess (puffed rice, lentils, cereal).
+- Spoon with a thick handle the gripper can hold.
+- Tape-mark bowl, spoon rest and mouth target so every run starts the same.
+- Scene camera must see bowl, spoon and target at once.
 
 ### Keep the instruction vocabulary SMALL
-- BFL's SO-101 example needed **~200 demos for a handful of related pick-and-place tasks**. We cannot afford demos for every slot pair.
-- Every distinct text instruction FLUX must learn costs demos. A full 2×3 grid has ~14 slides + 4 pushes + 6 lifts.
-- **Plan: pick ~6 trained move instructions** (e.g. 3 slides, 1–2 pushes, lift, pick-ball) and make the harness only choose random moves from that trained set (and only when they're legal). Verify in sim that the restricted set still mixes the cups well.
-- Put **large printed slot labels (A1…B3) or coloured tape** on the board so slot names in the instruction match something visible.
+- BFL's SO-101 example needed **~200 demos for a handful of related pick-and-place tasks**.
+- Every distinct text instruction FLUX must learn costs demos. ~5 instructions is the plan.
 - Instruction text must be **identical** between recording, training and rollout (same wording, same casing).
-- Pushing (cup-into-cup) is likely far from the pretraining data (mostly pick-and-place) → expect it to need the most demos; it's the first thing to cut if time runs out.
+- Scooping is likely the hardest skill → expect it to need the most demos.
 
-### Architecture: "brain" + "hands"
-This is exactly the organizers' recommended **"Option B: Harness + FLUX"**: FLUX does atomic skills, a simple software harness sequences, monitors and recovers.
-- **Brain (our Python code):**
-  - Generates random *legal* moves.
-  - Tracks the state: which slots have cups, and which cup holds the ball.
-  - Converts each move into a FLUX instruction (format depends on the FLUX interface — text and/or goal image).
-  - After each move, uses the camera to check which slots are occupied (simple OpenCV color/blob detection on the fixed slot regions). If the observed state ≠ expected state, retry or re-sync.
-- **Hands (FLUX 3 Action):** given scene + wrist images, joint state and a text instruction, outputs a chunk of arm actions. Fine-tuned (LoRA) on our teleop demos.
-- **How the harness calls FLUX:** for each subtask, run the policy with that `--task` text for a fixed duration (or until vision says the move is done), then stop, check the board with the scene camera, and decide the next step.
-- FLUX does NOT know when a subtask is "done" and does NOT notice failed grasps until it re-plans — **the harness must check success after every subtask**.
+### Architecture: "harness" + "hands"
+Organizers' recommended **"Option B: Harness + FLUX"**: FLUX does atomic skills, a simple Python harness sequences, checks and recovers.
+- **Harness (our code, `feeder/`):** runs the chain, sends one instruction per subtask, checks success after each (human check first, camera later), retries a failed step.
+- **Hands (FLUX 3 Action, `feeder/flux_hands.py`):** scene + wrist images, joint state and text instruction → chunk of arm actions. Fine-tuned (LoRA) on our teleop demos.
+- FLUX does NOT know when a subtask is "done" and does NOT notice a failed grasp until it re-plans — **the harness must check success after every subtask**.
 
-### Suggested repo structure
+### Repo structure
 ```
-shell_game/
-  state.py        # Board state, legal-move generation, ball tracking
-  shuffle.py      # Random shuffle sequence generator
-  vision.py       # Camera capture + slot-occupancy detection (OpenCV)
-  flux_client.py  # Thin wrapper around FLUX 3 Action inference
-  runner.py       # Main loop: shuffle -> find -> recover -> bowl
-  sim.py          # Simulation mode: run the brain with fake moves, no robot
-tests/
-  test_state.py   # e.g. 1000 random shuffles never produce illegal states
-data/             # recorded demos (do NOT commit large video files)
-README.md
+feeder/
+  config.py       # instruction text + per-step durations
+  interfaces.py   # Hands / Eyes protocols
+  flux_hands.py   # runs FLUX (lerobot-rollout) per subtask
+results/log.csv   # zero-shot vs post-training results (graded)
 ```
+The old shell-game code is kept in git under the tag `shell-game-archive`.
 
 ## Development rules
 - **Build a simulation mode first** so the brain can be developed and tested without the robot.
@@ -122,7 +102,7 @@ README.md
 | Phase | Time | Goal |
 |---|---|---|
 | 0 Orientation | Sat 11:15–12:45 | Install, download weights, calibrate in LeLab, teleop works, both cameras OK |
-| 1 Physical setup + ZERO-SHOT | 12:45–14:15 | Board, cups, lighting; run base checkpoint on each subskill, log results (graded!) |
+| 1 Physical setup + ZERO-SHOT | 12:45–14:15 | Scene, bowl, spoon, lighting; run base checkpoint on each subskill, log results (graded!) |
 | 2 Walking skeleton | 14:15–16:15 | ~10 demos of one skill → short LoRA fine-tune → run on arm; time the training |
 | 3 Data collection | 16:15–21:15 | 30–50 demos per skill type |
 | 4 Training + brain | 21:15–01:15 | Main training run; brain + vision + sim done |
@@ -133,9 +113,9 @@ README.md
 | 8 Submit & rehearse | 12:15–14:15 | Submit by 13:00 |
 
 ### Fallback levels
-- **Bronze:** one FLUX-driven slide + reveal.
-- **Silver:** fixed 3-move shuffle + find the ball.
-- **Gold:** random 5–10 moves incl. pushes + find + recovery.
+- **Bronze:** one FLUX-driven scoop + bring to mouth.
+- **Silver:** full chain, one bite (pick spoon → scoop → mouth → put down).
+- **Gold:** several bites in a row + retry when a scoop fails.
 
 ## Submission requirements
 - GitHub repository (this repo), slide deck, demo video (**MP4**), team name.

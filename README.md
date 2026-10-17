@@ -1,86 +1,53 @@
-# Korora — Robot Shell Game 🥤🔴
+# Korora — Robot Spoon-Feeder 🥄
 
 **ERH Physical AI Hackathon · Black Forest Labs track "Imagine, Then Act"**
 
-An SO-101 robot arm plays the shell game on its own: a human hides a ball under one of 3 cups,
-the robot **shuffles the cups itself** (sliding cups and pushing one cup with another),
-then **finds the ball**, **recovers** if it guessed wrong, and drops the ball into a bowl.
-Every physical move is performed live by **FLUX 3 Action**; a small Python "brain" sequences,
-checks and recovers.
+An SO-101 robot arm feeds a person who can't use their arms: it picks up a spoon, scoops food,
+brings it to the mouth and repeats, bite after bite. Every physical move is performed live by
+**FLUX 3 Action**; a small Python harness sequences the steps, checks them and retries.
 
-## How it works
+> At the hackathon we use a mannequin head / marked target as the "mouth".
 
-```
- BRAIN (shell_game/)                          HANDS (FLUX 3 Action)
- ─────────────────────                        ──────────────────────
- pick a random legal move ──"slide the cup     scene + wrist camera
- track which cup has ball    from A1 to B1"──▶  + joint state + text
- look at board, check move ◀── board changes ── → arm actions (replans ~1 s)
- retry / resync / recover
-```
+## Task chain
 
-This is the "Harness + FLUX" design recommended by the organizers: FLUX does atomic skills,
-the harness handles the long-horizon chain.
+1. Pick up the spoon
+2. Scoop food from the bowl
+3. Bring the spoon to the mouth
+4. Move the spoon back to the bowl
+5. Repeat 2–4 for several bites
+6. Put the spoon down
 
-## The board and the moves
+Instruction text: `feeder/config.py`.
+
+## How FLUX is used
 
 ```
-    1   2   3
-A  [ ] [ ] [ ]   ← cups start AND end here
-B   .   .   .
+ HARNESS (feeder/)                            HANDS (FLUX 3 Action)
+ ─────────────────                            ──────────────────────
+ next step in the chain ──"scoop food from     scene + wrist camera
+ check it worked           the bowl"──────▶    + joint state + text
+ retry if it failed    ◀──── result ───────    → arm actions (replans ~1 s)
 ```
-
-Only **6 trained moves** (5 slides + 1 push). We chose them with an exhaustive search over all
-small move sets on the 2×3 board: this set mixes the ball best (the best possible guess is ~41%,
-perfect would be 33%), never gets stuck, and always brings the cups back to row A, so "reveal"
-only has to be learned for 3 slots. A game averages **~13 shuffle moves → ~17 FLUX subtasks**.
-
-Simpler-looking sets (e.g. row pushes + column slides) barely mix: the ball stays in place ~84%
-of the time.
-
-## Quick start (no robot, any laptop, no installs)
-
-```
-python -m shell_game.play                       # watch one simulated game
-python -m shell_game.play --list-instructions   # the 10 instructions to record demos for
-python -m shell_game.play --games 1000 --quiet --fail-rate 0.15 --wrong-rate 0.05
-python -m unittest discover tests               # run the tests
-```
-
-## Rehearse with humans (before FLUX works)
-
-```
-python -m shell_game.play --hands human --eyes human
-```
-The program tells a teammate each move; they do it with the leader arm (or by hand) and type what
-the board looks like. Great for testing the board and practising the demo.
 
 ## Run with FLUX on the real arm ⚠️ moves the arm
 
-On the machine with the NVIDIA GPU, the arm and both cameras:
-```
-# print the commands only
-python -m shell_game.play --hands flux --eyes human --policy models/flux-3-action-so101 --dry-run
-# zero-shot (released checkpoint), logged for grading
-python -m shell_game.play --hands flux --eyes human --policy models/flux-3-action-so101 \
-    --log results/log.csv --phase zero-shot --checkpoint "flux-3-action-so101@c9e13b2"
-# our fine-tuned LoRA
-python -m shell_game.play --hands flux --eyes human --peft --policy outputs/so101_lora/checkpoints/last/pretrained_model \
-    --log results/log.csv --phase post-training --checkpoint "lora-<step>"
-```
+_TODO: harness entry point._ `feeder/flux_hands.py` runs `lerobot-rollout` once per subtask
+(see `CLAUDE.md` for the exact commands).
+
+## Results
+
+Zero-shot vs post-training: `results/log.csv`.
 
 ## Files
 
 | File | What it does |
 |---|---|
-| `shell_game/config.py` | **Edit here**: board, trained moves, exact instruction text |
-| `shell_game/board.py` | Moves + what the brain believes (cup positions, ball) |
-| `shell_game/shuffle.py` | Picks the next random legal move; shortest way home |
-| `shell_game/runner.py` | The game loop: shuffle → find → recover → bowl, + CSV logging |
-| `shell_game/sim.py` | Fake arm/camera that can miss or do wrong moves |
-| `shell_game/human.py` | Human arm/eyes for rehearsing |
-| `shell_game/flux_hands.py` | Calls FLUX 3 Action (`lerobot-rollout`) per subtask |
+| `feeder/config.py` | **Edit here**: instruction text + time per step |
+| `feeder/interfaces.py` | Hands / Eyes interfaces |
+| `feeder/flux_hands.py` | Calls FLUX 3 Action (`lerobot-rollout`) per subtask |
 | `results/log.csv` | Zero-shot vs post-training results |
+
+The earlier shell-game version is saved under the git tag `shell-game-archive`.
 
 ## Time split
 

@@ -17,8 +17,7 @@ from dataclasses import dataclass
 
 from . import config
 
-# How long FLUX gets for each kind of subtask (seconds). Tune after testing.
-DURATIONS = {"slide": 12, "push": 15, "reveal": 12, "pick": 15}
+DEFAULT_DURATION = 15  # seconds, for instructions not listed in config.DURATIONS
 
 
 @dataclass
@@ -37,14 +36,11 @@ class FluxHands:
     def __init__(self, s: FluxSettings):
         self.s = s
 
-    def _kind(self, instruction: str) -> str:
-        if instruction == config.PICK_TEXT:
-            return "pick"
-        if instruction.startswith("push"):
-            return "push"
-        if instruction.startswith("lift"):
-            return "reveal"
-        return "slide"
+    def _duration(self, instruction: str) -> int:
+        for key, text in config.INSTRUCTIONS.items():
+            if text == instruction:
+                return config.DURATIONS.get(key, DEFAULT_DURATION)
+        return DEFAULT_DURATION
 
     def command(self, instruction: str) -> list:
         s = self.s
@@ -59,7 +55,7 @@ class FluxHands:
             "--robot.type=so101_follower", f"--robot.port={s.port}", f"--robot.id={s.robot_id}",
             "--robot.use_degrees=true",
             f"--robot.cameras={json.dumps(cams)}",
-            "--fps=30", f"--task={instruction}", f"--duration={DURATIONS[self._kind(instruction)]}",
+            "--fps=30", f"--task={instruction}", f"--duration={self._duration(instruction)}",
         ]
         if s.use_peft:
             cmd.insert(4, "--policy.use_peft=true")
