@@ -49,26 +49,25 @@
 
 ## The task: Robot Spoon-Feeder
 An SO-101 arm feeds a person who can't use their arms (e.g. paralysis): it scoops food with a spoon
-and brings it to the mouth, bite after bite. **At the hackathon we use a mannequin head / marked
-target as the "mouth" — never a real person's face.**
+and brings it to the mouth, bite after bite. **The spoon is fixed to the gripper. At the hackathon
+the "mouth" is a cup the food is tipped into — never a real person's face.**
 
 ### Task chain (draft — instruction text lives in `feeder/config.py`)
-1. Pick up the spoon
-2. Scoop food from the bowl
-3. Bring the spoon to the mouth (keep it level, don't spill)
+1. Scoop food from the bowl
+2. Bring the spoon to the mouth cup (keep it level, don't spill)
+3. Tip the food into the mouth cup
 4. Move the spoon back to the bowl
-5. Repeat 2–4 for several bites (longer chain = higher score)
-6. Put the spoon down
+5. Repeat 1–4 for several bites (longer chain = higher score)
 
 ### Scene
 - Food that scoops reliably with little mess (puffed rice, lentils, cereal).
-- Spoon with a thick handle the gripper can hold.
-- Tape-mark bowl, spoon rest and mouth target so every run starts the same.
-- Scene camera must see bowl, spoon and target at once.
+- Spoon fixed to the gripper; "mouth" = a cup at a fixed, tape-marked spot.
+- Tape-mark bowl and mouth cup so every run starts the same.
+- Scene camera must see bowl, spoon and mouth cup at once.
 
 ### Keep the instruction vocabulary SMALL
 - BFL's SO-101 example needed **~200 demos for a handful of related pick-and-place tasks**.
-- Every distinct text instruction FLUX must learn costs demos. ~5 instructions is the plan.
+- Every distinct text instruction FLUX must learn costs demos. 4 instructions is the plan.
 - Instruction text must be **identical** between recording, training and rollout (same wording, same casing).
 - Scooping is likely the hardest skill → expect it to need the most demos.
 
@@ -81,7 +80,7 @@ Organizers' recommended **"Option B: Harness + FLUX"**: FLUX does atomic skills,
 ### Repo structure
 ```
 feeder/
-  config.py       # instruction text + per-step durations
+  config.py       # instruction text, bite chain, per-step durations
   interfaces.py   # Hands / Eyes protocols
   flux_hands.py   # runs FLUX (lerobot-rollout) per subtask
 results/log.csv   # zero-shot vs post-training results (graded)
@@ -114,7 +113,7 @@ The old shell-game code is kept in git under the tag `shell-game-archive`.
 
 ### Fallback levels
 - **Bronze:** one FLUX-driven scoop + bring to mouth.
-- **Silver:** full chain, one bite (pick spoon → scoop → mouth → put down).
+- **Silver:** full chain, one bite (scoop → mouth → tip → back to bowl).
 - **Gold:** several bites in a row + retry when a scoop fails.
 
 ## Submission requirements

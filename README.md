@@ -2,20 +2,19 @@
 
 **ERH Physical AI Hackathon · Black Forest Labs track "Imagine, Then Act"**
 
-An SO-101 robot arm feeds a person who can't use their arms: it picks up a spoon, scoops food,
-brings it to the mouth and repeats, bite after bite. Every physical move is performed live by
+An SO-101 robot arm feeds a person who can't use their arms: with a spoon fixed to its gripper it
+scoops food, brings it to the mouth, tips it in and repeats, bite after bite. Every physical move is performed live by
 **FLUX 3 Action**; a small Python harness sequences the steps, checks them and retries.
 
-> At the hackathon we use a mannequin head / marked target as the "mouth".
+> At the hackathon the "mouth" is a cup the food is tipped into.
 
 ## Task chain
 
-1. Pick up the spoon
-2. Scoop food from the bowl
-3. Bring the spoon to the mouth
+1. Scoop food from the bowl
+2. Bring the spoon to the mouth (cup)
+3. Tip the food into the mouth
 4. Move the spoon back to the bowl
-5. Repeat 2–4 for several bites
-6. Put the spoon down
+5. Repeat 1–4 for several bites
 
 Instruction text: `feeder/config.py`.
 
