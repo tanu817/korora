@@ -23,7 +23,7 @@ Instruction text: `feeder/config.py`.
 ```
  HARNESS (feeder/)                            HANDS (FLUX 3 Action)
  ─────────────────                            ──────────────────────
- next step in the chain ──"scoop food from     scene + wrist camera
+ next step in the chain ──"Scoop food from     scene + wrist camera
  check it worked           the bowl"──────▶    + joint state + text
  retry if it failed    ◀──── result ───────    → arm actions (replans ~1 s)
 ```

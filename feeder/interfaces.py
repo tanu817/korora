@@ -12,7 +12,7 @@ from typing import Protocol
 
 class Hands(Protocol):
     def do(self, instruction: str) -> None:
-        """Perform one subtask, e.g. 'scoop food from the bowl'. Blocks until finished."""
+        """Perform one subtask, e.g. 'Scoop food from the bowl'. Blocks until finished."""
 
 
 class Eyes(Protocol):
