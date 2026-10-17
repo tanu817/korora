@@ -26,7 +26,7 @@ class FluxSettings:
     policy_path: str                     # base checkpoint dir (zero-shot) or our LoRA checkpoint
     use_peft: bool = False               # True for our LoRA checkpoint
     port: str = "/dev/ttyACM0"
-    robot_id: str = "so101"
+    robot_id: str = "follower"           # same id as the calibration file
     scene_cam: str | int = 0             # camera index or /dev/videoN
     wrist_cam: str | int = 1
     confirm_each: bool = True            # ask before every subtask (recommended at first)
