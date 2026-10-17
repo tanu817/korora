@@ -14,6 +14,9 @@ class Hands(Protocol):
     def do(self, instruction: str) -> None:
         """Perform one subtask, e.g. 'scoop food from the bowl'. Blocks until finished."""
 
+    def stop(self) -> None:
+        """Stop the currently running subtask, if one is active."""
+
 
 class Eyes(Protocol):
     # TODO: decide which checks the spoon-feeding harness needs, e.g.:

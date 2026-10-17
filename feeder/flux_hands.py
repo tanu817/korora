@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import shlex
 import subprocess
+import threading
 from dataclasses import dataclass
 
 from . import config
@@ -35,6 +36,8 @@ class FluxSettings:
 class FluxHands:
     def __init__(self, s: FluxSettings):
         self.s = s
+        self._process: subprocess.Popen | None = None
+        self._process_lock = threading.Lock()
 
     def _duration(self, instruction: str) -> int:
         for key, text in config.INSTRUCTIONS.items():
@@ -68,4 +71,30 @@ class FluxHands:
             return
         if self.s.confirm_each:
             input("   ARM WILL MOVE. Hand on the power switch? [Enter to go, Ctrl+C to stop] ")
-        subprocess.run(cmd, check=True)
+        process = subprocess.Popen(cmd)
+        with self._process_lock:
+            self._process = process
+        try:
+            return_code = process.wait()
+            if return_code != 0:
+                raise subprocess.CalledProcessError(return_code, cmd)
+        finally:
+            with self._process_lock:
+                if self._process is process:
+                    self._process = None
+
+    def stop(self) -> None:
+        """Terminate the active rollout so a voice stop takes effect promptly."""
+        with self._process_lock:
+            process = self._process
+
+        if process is None or process.poll() is not None:
+            return
+
+        print("Stopping the active FLUX rollout.")
+        process.terminate()
+        try:
+            process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
