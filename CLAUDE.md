@@ -194,15 +194,16 @@ lerobot-rollout \
 - For the harness, prefer calling the policy from Python (`Flux3Policy.from_pretrained(...)` + `make_pre_post_processors(...)`) so we can switch `--task` per subtask without restarting.
 
 ### LoRA fine-tune (one GPU)
+Per the model card: the recipe ships with the checkpoint (`lora.json`, copied into the normfix folder),
+and both frozen encoders load automatically from the pinned base repo (config `video_vae_id` / `text_encoder_id`).
 ```sh
-python -m lerobot.scripts.lerobot_train \
-  --config_path=examples/flux3/lora.json \
-  --policy.path="$policy_dir" --policy.device=cuda \
-  --policy.video_vae_id="$encoders_dir/video_vae.safetensors" \
-  --policy.text_encoder_id="$encoders_dir/text_encoder" \
-  --dataset.repo_id=YOUR_ORG/YOUR_SO101_DATASET \
-  --output_dir=outputs/so101_lora
+lerobot-train --config_path="$policy_dir/lora.json" \
+  --policy.path="$policy_dir" \
+  --dataset.repo_id=ArnavG07/korora_spoon_feed \
+  --output_dir=outputs/so101_lora --job_name=korora-lora
 ```
+- Our dataset: `ArnavG07/korora_spoon_feed` (private, 136 episodes, 4 tasks). `lora.json` holds out 20% of episodes for eval (`eval_split: 0.2`).
+- Policy contract (from config.json): history conditioning, 8 observations, 2 visual snapshots, past-command conditioning, joint **deltas** + absolute gripper.
 - Preset: LoRA rank/alpha 32, adapter LR 1e-4, head LR 5e-4, BF16, grad checkpointing, EMA 0.999, batch 2 × grad-accum 4, **10,000 microsteps (= 2,500 optimizer updates)**.
 - Resume: `lerobot-train --config_path=outputs/so101_lora/checkpoints/last/pretrained_model/train_config.json --resume=true`
 - Compare `pretrained_model` vs `pretrained_model_ema` on identical tests — EMA is not automatically better.
