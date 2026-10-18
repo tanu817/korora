@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import math
 import threading
 import time
 import urllib.request
@@ -49,6 +50,7 @@ class RemoteSettings:
     no_motion: bool = False              # read cameras/joints and query FLUX, but never send commands
     confirm_each: bool = True            # ask before every subtask
     jpeg_quality: int = 90
+    exec_steps: int = 10                 # execute this many of each predicted chunk, then replan
 
 
 def encode_jpeg(rgb: np.ndarray, quality: int) -> str:
@@ -138,13 +140,14 @@ class RemoteFluxHands:
         self._stop.clear()
         queue: deque = deque()  # a new instruction never inherits commands planned for the old one
         ticks_left = round(duration * FPS)
-        deadline = time.perf_counter() + 5 * duration  # safety cap if the GPU is very slow
+        # safety cap if the GPU is very slow: the motion itself plus up to 10 s per FLUX request
+        deadline = time.perf_counter() + duration + 10 * math.ceil(ticks_left / self.s.exec_steps)
         while ticks_left > 0 and time.perf_counter() < deadline and not self._stop.is_set():
             ticks_left -= 1
             tick = time.perf_counter()
             self._observe()
             if not queue:
-                queue.extend(self._request_chunk(task))
+                queue.extend(self._request_chunk(task)[: self.s.exec_steps])
             command = queue.popleft()
             self.last_command = command
             if not self.s.no_motion:
@@ -181,13 +184,17 @@ def main() -> None:
     parser.add_argument("--no-motion", action="store_true", help="never send commands to the arm")
     parser.add_argument("--server", default=RemoteSettings.server)
     parser.add_argument("--yes", action="store_true", help="skip the keyboard confirmation (confirmed elsewhere)")
+    parser.add_argument("--exec-steps", type=int, default=RemoteSettings.exec_steps,
+                        help="actions executed per FLUX request before replanning (model predicts 32)")
     parser.add_argument("--start-delay", type=float, default=3.0,
                         help="seconds the arm holds still after the motors switch on, so hands can let go")
     args = parser.parse_args()
 
     if args.task not in config.INSTRUCTIONS.values():
         print(f"WARNING: {args.task!r} is not one of the trained instructions in feeder/config.py")
-    hands = RemoteFluxHands(RemoteSettings(server=args.server, no_motion=args.no_motion))
+    hands = RemoteFluxHands(
+        RemoteSettings(server=args.server, no_motion=args.no_motion, exec_steps=args.exec_steps)
+    )
     try:
         if not args.no_motion and not args.yes:
             input(f"ARM WILL MOVE: {args.task!r}. Hand on the power switch? [Enter / Ctrl+C] ")

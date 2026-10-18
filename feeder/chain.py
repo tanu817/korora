@@ -104,6 +104,8 @@ def main() -> None:
     parser.add_argument("--sim", action="store_true", help="no arm, no GPU: print the steps only")
     parser.add_argument("--yes", action="store_true", help="skip the keyboard confirmation (confirmed elsewhere)")
     parser.add_argument("--start-delay", type=float, default=3.0, help="seconds to let go of the arm")
+    parser.add_argument("--exec-steps", type=int, default=10,
+                        help="actions executed per FLUX request before replanning (model predicts 32)")
     args = parser.parse_args()
 
     global LOG
@@ -114,7 +116,9 @@ def main() -> None:
     else:
         from .flux_remote import RemoteFluxHands, RemoteSettings
 
-        hands = RemoteFluxHands(RemoteSettings(server=args.server, confirm_each=False))
+        hands = RemoteFluxHands(
+            RemoteSettings(server=args.server, confirm_each=False, exec_steps=args.exec_steps)
+        )
         checkpoint, phase = args.checkpoint or hands.info["policy_path"], args.phase
     try:
         if not args.sim:
