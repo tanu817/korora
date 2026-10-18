@@ -34,7 +34,7 @@
 - **Teammate's Lenovo Legion** (Windows + WSL2 Ubuntu): for zero-shot runs/rollout only if its GPU has enough VRAM (~24 GB+). Being set up now.
 - **Tanu's laptop** (Windows on ARM, no NVIDIA GPU): code, brain/sim, git. Cannot run FLUX.
 - Recorded datasets must be **pushed to the Hugging Face Hub** so AWS can pull them for training.
-- Calibration files must be **copied** to whichever machine runs the arm (robot id `follower`, leader id `leader`; follower board serial 5B14114369, leader 5B8E116976).
+- Calibration files must be **copied** to whichever machine runs the arm (same robot id `so101`, leader id `leader`).
 
 ## Hardware
 - SO-101 follower arm + SO-101 leader arm (for teleoperation / recording demos). **Not yet calibrated.**
