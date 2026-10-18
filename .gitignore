@@ -24,3 +24,4 @@ data/
 .DS_Store
 Thumbs.db
 results/sim_log.csv
+results/runs/

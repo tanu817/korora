@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import csv
 import json
 import math
 import threading
@@ -24,6 +25,8 @@ import time
 import urllib.request
 from collections import deque
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -43,6 +46,11 @@ class RemoteSettings:
     scene_cam: str | int = 0
     wrist_cam: str | int = 2
     max_step_deg: float = 4.0            # max change between consecutive commands, per joint per tick
+    # FLUX predicts command deltas that the bridge integrates. When the arm can't follow (e.g. shoulder
+    # already at its stop) the integrated command drifts away, far outside the demos (leader within a few
+    # degrees of the follower). Keep the remembered command within this distance of the measured joints.
+    max_command_lead_deg: float = 6.0
+    trajectory_dir: str = "results/runs"  # per-tick CSV of every run, for diagnosis (gitignored)
     # LeRobot's max_relative_target measures from the *present* position. Under gravity the shoulder sags
     # a few degrees below its goal, so a tight value there stalls the arm; keep it as a wide emergency brake.
     emergency_limit_deg: float = 30.0
@@ -195,6 +203,14 @@ class RemoteFluxHands:
         self.history.clear()
         self.last_command = None
         queue: deque = deque()  # a new instruction never inherits commands planned for the old one
+        log_dir = Path(self.s.trajectory_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = log_dir / f"{datetime.now():%Y%m%d_%H%M%S}_{key or 'custom'}.csv"
+        log_file = log_path.open("w", newline="")
+        log = csv.writer(log_file)
+        log.writerow(["t", "new_chunk"] + [f"state_{j}" for j in JOINTS] + [f"cmd_{j}" for j in JOINTS]
+                     + [f"sent_{j}" for j in JOINTS])
+        t_start = time.perf_counter()
         ticks_left = round(duration * FPS)
         # safety cap if the GPU is very slow: the motion itself plus up to 10 s per FLUX request
         deadline = time.perf_counter() + duration + 10 * math.ceil(ticks_left / self.s.exec_steps)
@@ -202,9 +218,13 @@ class RemoteFluxHands:
             ticks_left -= 1
             tick = time.perf_counter()
             self._observe()
-            if not queue:
+            new_chunk = not queue
+            if new_chunk:
                 queue.extend(self._request_chunk(task)[: self.s.exec_steps])
             command = queue.popleft()
+            state = self.history[-1][0]
+            lead = self.s.max_command_lead_deg
+            command[:5] = np.clip(command[:5], state[:5] - lead, state[:5] + lead)
             self.last_command = command
             if not self.s.no_motion:
                 step = self.s.max_step_deg
@@ -213,7 +233,11 @@ class RemoteFluxHands:
                     sent[-1] = self.gripper_hold
                 self.robot.send_action({f"{j}.pos": float(v) for j, v in zip(JOINTS, sent, strict=True)})
                 self.last_sent = sent
+            log.writerow([round(tick - t_start, 3), int(new_chunk)] + [round(float(v), 2) for v in state]
+                         + [round(float(v), 2) for v in command] + [round(float(v), 2) for v in self.last_sent])
             time.sleep(max(0.0, 1 / FPS - (time.perf_counter() - tick)))
+        log_file.close()
+        print(f"   trajectory saved: {log_path}")
 
     def _duration(self, instruction: str) -> float:
         for key, text in config.INSTRUCTIONS.items():
