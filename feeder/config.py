@@ -41,6 +41,11 @@ GOAL_REACHED_DEG = 8.0
 GOAL_NEAR_DEG = 30.0
 GOAL_PASSED_DEG = 3.0
 
+# The scoop is done once the wrist roll has passed this angle (new demos: 65-103 deg, live 14-85 deg
+# depending on when FLUX starts the roll); the step then runs SCOOP_FINISH_S longer to lift the spoon.
+SCOOP_ROLL_DONE_DEG = 60.0
+SCOOP_FINISH_S = 1.5
+
 # Mean scene-camera RGB of each skill's training demos. The scene camera turned pink midway through
 # recording (scoop/to_mouth demos are yellowish, feed/back_to_rest pink), so the bridge rescales the live
 # scene colors to match the skill being run. Measured from ArnavG07/korora_spoon_feed.
@@ -54,7 +59,7 @@ SCENE_MEAN_RGB = {
 # Seconds of arm MOTION per subtask (pauses while FLUX plans don't count).
 # ~90th percentile of the recorded demo lengths. Tune after testing.
 DURATIONS = {
-    "scoop": 15,  # step 12000 live: full wrist roll reached at 13.7 s
+    "scoop": 25,  # upper limit; the step ends after the scooping roll (SCOOP_ROLL_DONE_DEG)
     "to_mouth": 14,  # upper limit; the step ends at the demo goal pose (GOAL_POSE), usually after 6-8 s
     "feed": 9,
     "back_to_rest": 10,  # live: only ~2/3 of the way to rest after 6 s
