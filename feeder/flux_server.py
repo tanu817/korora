@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import random
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -35,7 +36,7 @@ def decode_jpeg(data: str) -> np.ndarray:
 
 
 class Flux:
-    def __init__(self, policy_path: str, use_peft: bool):
+    def __init__(self, policy_path: str, use_peft: bool, fixed_seed: bool = False):
         cfg = PreTrainedConfig.from_pretrained(policy_path)
         cfg.pretrained_path = policy_path
         cfg.use_peft = use_peft
@@ -47,6 +48,7 @@ class Flux:
             policy = policy.merge_and_unload()
         self.policy = policy.to("cuda").eval()
         self.pre, self.post = make_pre_post_processors(cfg, pretrained_path=policy_path)
+        self.fixed_seed = fixed_seed
         self.lock = threading.Lock()
 
     def frames(self, first: str, last: str) -> torch.Tensor:
@@ -56,7 +58,7 @@ class Flux:
         n = self.cfg.n_obs_steps
         return torch.stack([a] * (n - 1) + [b])[None]
 
-    def act(self, req: dict) -> list[list[float]]:
+    def act(self, req: dict) -> tuple[list[list[float]], int]:
         """Same steps as LeRobot's synchronous engine, but with the history passed in explicitly."""
         obs = {
             "observation.state": torch.tensor(req["state"], dtype=torch.float32)[None],
@@ -67,14 +69,19 @@ class Flux:
         for cam in CAMERAS:
             obs[f"observation.images.{cam}"] = self.frames(*req[cam])
         amp = torch.autocast("cuda") if self.cfg.use_amp else torch.autocast("cuda", enabled=False)
+        # A fixed seed makes identical inputs give identical plans: standing still at the start of a
+        # skill then repeats "keep waiting" forever. The demos start moving after a random 0-5 s, so
+        # FLUX needs fresh sampling noise per request to ever leave that waiting phase.
+        seed = self.policy.config.inference_seed if self.fixed_seed else random.randrange(2**31)
         with self.lock, torch.inference_mode(), amp:
+            self.policy.config.inference_seed = seed
             self.policy.reset()
             self.pre.reset()
             self.post.reset()
             batch = self.pre(obs)
             chunk = self.policy.predict_action_chunk(batch)[:, : self.cfg.n_action_steps]
             commands = self.post(chunk)
-        return commands[0].float().cpu().tolist()
+        return commands[0].float().cpu().tolist(), seed
 
 
 def make_handler(flux: Flux, info: dict):
@@ -94,8 +101,8 @@ def make_handler(flux: Flux, info: dict):
             try:
                 req = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 t0 = time.perf_counter()
-                actions = flux.act(req)
-                self._reply(200, {"actions": actions, "infer_s": time.perf_counter() - t0})
+                actions, seed = flux.act(req)
+                self._reply(200, {"actions": actions, "seed": seed, "infer_s": time.perf_counter() - t0})
             except Exception as e:  # report to the laptop instead of dropping the connection
                 self._reply(500, {"error": f"{type(e).__name__}: {e}"})
 
@@ -110,16 +117,18 @@ def main() -> None:
     parser.add_argument("--policy-path", required=True)
     parser.add_argument("--use-peft", action="store_true", help="policy-path is a LoRA checkpoint")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--fixed-seed", action="store_true", help="checkpoint's inference_seed for every request")
     args = parser.parse_args()
 
     t0 = time.perf_counter()
-    flux = Flux(args.policy_path, args.use_peft)
+    flux = Flux(args.policy_path, args.use_peft, args.fixed_seed)
     info = {
         "policy_path": args.policy_path,
         "use_peft": args.use_peft,
         "n_obs_steps": flux.cfg.n_obs_steps,
         "n_action_steps": flux.cfg.n_action_steps,
         "fps": flux.cfg.fps,
+        "seed": "fixed" if args.fixed_seed else "random per request",
     }
     print(f"FLUX loaded in {time.perf_counter() - t0:.0f} s: {info}", flush=True)
     ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(flux, info)).serve_forever()
