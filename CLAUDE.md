@@ -171,9 +171,12 @@ hf download black-forest-labs/flux-3-action-base \
   --revision 62878e2925e59b7a89ec14463ce89932624c490d \
   --include 'video_vae.safetensors' --include 'text_encoder/*' \
   --local-dir models/flux-3-action-base
-policy_dir="$(pwd)/models/flux-3-action-so101"
+# Normalization fix from the organizers (released quantiles don't match raw LeRobot degrees):
+python ~/korora/scripts/fix_flux_normalization.py models/flux-3-action-so101 models/flux-3-action-so101-normfix
+policy_dir="$(pwd)/models/flux-3-action-so101-normfix"   # use the PATCHED copy everywhere
 encoders_dir="$(pwd)/models/flux-3-action-base"
 ```
+- **Always use the `-normfix` checkpoint** for zero-shot, training and rollout (see `scripts/fix_flux_normalization.py`, source: multimodalart/flux-3-action-so101-sim commit 09edebb). Training and rollout both read normalization from the checkpoint's processor files, so this one patch covers everything. Record in `results/log.csv` that zero-shot used revision c9e13b2 + normfix.
 Sanity check: load `models/flux-3-action-so101/config.json` and print `camera_keys, camera_layout, fps, chunk_size, n_action_steps`; assert fps == 30.
 
 ### Zero-shot / rollout (THIS MOVES THE ARM — confirm both camera views first)
