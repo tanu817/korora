@@ -38,3 +38,8 @@ timestamp,phase,checkpoint,instruction,attempt,success,steps_completed,steps_tot
 2026-10-18T13:57:57,post-training,lora-step-12000 (non-EMA; exec 20; reset; seeded history; random seed),Tip the food into the mouth,1,,0,1,0,0,"chain bite 1/1, autonomous (no success check)"
 2026-10-18T13:58:22,post-training,lora-step-12000 (non-EMA; exec 20; reset; seeded history; random seed),Move the spoon back to the rest position,1,,0,1,0,0,"chain bite 1/1, autonomous (no success check)"
 2026-10-18T13:58:22,post-training,lora-step-12000 (non-EMA; exec 20; reset; seeded history; random seed),FULL CHAIN (1 bites),1,1,4,4,0,0,autonomous
+2026-10-18T14:03:28,post-training,step-12000 scoop+tip / step-10000 to_mouth+back (non-EMA; exec 20; reset; seeded history; random seed),Scoop food from the bowl,1,,0,1,0,0,"chain bite 1/1, autonomous (no success check)"
+2026-10-18T14:03:51,post-training,step-12000 scoop+tip / step-10000 to_mouth+back (non-EMA; exec 20; reset; seeded history; random seed),Bring the spoon to the mouth,1,,0,1,0,0,"chain bite 1/1, autonomous (no success check)"
+2026-10-18T14:04:17,post-training,step-12000 scoop+tip / step-10000 to_mouth+back (non-EMA; exec 20; reset; seeded history; random seed),Tip the food into the mouth,1,,0,1,0,0,"chain bite 1/1, autonomous (no success check)"
+2026-10-18T14:04:42,post-training,step-12000 scoop+tip / step-10000 to_mouth+back (non-EMA; exec 20; reset; seeded history; random seed),Move the spoon back to the rest position,1,,0,1,0,0,"chain bite 1/1, autonomous (no success check)"
+2026-10-18T14:04:42,post-training,step-12000 scoop+tip / step-10000 to_mouth+back (non-EMA; exec 20; reset; seeded history; random seed),FULL CHAIN (1 bites),1,1,4,4,0,0,autonomous
