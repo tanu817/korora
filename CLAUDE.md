@@ -95,7 +95,6 @@ The old shell-game code is kept in git under the tag `shell-game-archive`.
 - Commit to git often with clear messages. Don't commit datasets, model weights, or videos (use .gitignore).
 - Keep dependencies minimal. Pin versions once things work.
 - If something fails twice the same way, stop and explain the problem instead of trying random fixes.
-- **Feature freeze: Sunday ~10:15.** After that, only bug fixes — no new features or refactors.
 
 ## Timeline (Sat 11:15 → Sun ~14:15)
 | Phase | Time | Goal |
@@ -107,7 +106,7 @@ The old shell-game code is kept in git under the tag `shell-game-archive`.
 | 4 Training + brain | 21:15–01:15 | Main training run; brain + vision + sim done |
 | Sleep | 01:15–05:15 | Overnight training run |
 | 5 Test & fix | 05:15–08:15 | Per-skill success rates; extra demos for failures |
-| 6 Full chain | 08:15–10:15 | End-to-end runs; FREEZE at 10:15 |
+| 6 Full chain | 08:15–10:15 | End-to-end runs |
 | 7 Video/slides/repo | 10:15–12:15 | MP4 demo video, deck, README |
 | 8 Submit & rehearse | 12:15–14:15 | Submit by 13:00 |
 
