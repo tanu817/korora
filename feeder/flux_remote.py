@@ -229,8 +229,6 @@ class RemoteFluxHands:
         goal = config.GOAL_POSE.get(key)
         goal = None if goal is None else np.array(goal, dtype=np.float32)
         closest = np.inf
-        finish_ticks = None  # set once the scooping roll has happened
-        roll0 = None  # wrist roll at the start of this step
         ticks_left = round(duration * FPS)
         # safety cap if the GPU is very slow: the motion itself plus up to 10 s per FLUX request
         deadline = time.perf_counter() + duration + 10 * math.ceil(ticks_left / self.s.exec_steps)
@@ -256,15 +254,6 @@ class RemoteFluxHands:
                 self.last_sent = sent
             log.writerow([round(tick - t_start, 3), int(new_chunk)] + [round(float(v), 2) for v in state]
                          + [round(float(v), 2) for v in command] + [round(float(v), 2) for v in self.last_sent])
-            if key == "scoop":
-                roll0 = state[4] if roll0 is None else roll0
-                if finish_ticks is None and abs(state[4] - roll0) >= config.SCOOP_ROLL_DONE_DEG:
-                    finish_ticks = round(config.SCOOP_FINISH_S * FPS)
-                    print(f"   scooping roll done after {(tick - t_start):.0f} s")
-                elif finish_ticks is not None:
-                    finish_ticks -= 1
-                    if finish_ticks <= 0:
-                        break
             if goal is not None:
                 dist = float(np.abs(state[:4] - goal).max())
                 closest = min(closest, dist)
