@@ -130,7 +130,21 @@ tokens put their attention (averaged over heads, action tokens, blocks and denoi
 predicts 20 steps; ADE = mean absolute joint error over the 20 steps, FDE = error at step 20 (degrees).
 These are training episodes (fit, not generalization).
 
-DISPLACEMENT_TABLE
+- Zero-shot is worse than standing still (3.14 vs 2.36 deg): the base model moves the wrong way on this task.
+- The trajectory error keeps falling until ~7,000 steps even though the action loss is flat after ~1,000.
+- Fine-tuned, the model beats "stand still" by only ~20 %; the wrist roll is the largest error.
+
+| Model | Scoop ADE / FDE | To mouth ADE / FDE | Tip ADE / FDE | Back to rest ADE / FDE | Mean ADE |
+|---|---|---|---|---|---|
+| stand still | 2.00 / 3.28 | 1.57 / 3.18 | 2.64 / 4.81 | 3.23 / 5.85 | **2.36** |
+| zero-shot | 3.55 / 7.10 | 2.48 / 6.00 | 3.38 / 7.23 | 3.16 / 6.84 | **3.14** |
+| step-1000 | 2.41 / 4.44 | 1.72 / 3.14 | 2.55 / 5.21 | 2.32 / 4.61 | **2.25** |
+| step-4000 | 1.93 / 3.35 | 1.79 / 3.28 | 2.07 / 4.17 | 2.44 / 4.84 | **2.06** |
+| step-7000 | 1.89 / 3.26 | 1.36 / 2.37 | 1.69 / 3.22 | 2.46 / 4.97 | **1.85** |
+| step-10000 | 1.50 / 2.62 | 1.56 / 2.81 | 1.68 / 3.35 | 2.86 / 5.48 | **1.90** |
+| step-10000-EMA | 1.92 / 3.36 | 1.51 / 2.87 | 2.07 / 4.19 | 2.34 / 4.59 | **1.96** |
+
+Wrist-roll ADE on scoop (degrees): stand still 6.34, zero-shot 5.06, step-1000 4.29, step-4000 4.43, step-7000 4.38, step-10000 3.42, step-10000-EMA 4.53.
 
 ## Tooling notes
 

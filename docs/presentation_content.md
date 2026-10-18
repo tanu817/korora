@@ -94,9 +94,25 @@ Each one produced plausible-looking but wrong behaviour without any error messag
 ## 9. Displacement error (how close the predicted trajectory is to the demo)
 - Open-loop: FLUX gets the real 8-tick history at 5 moments in 6 demos per skill and predicts 20 steps;
   ADE = mean joint error over the 20 steps, FDE = error at step 20 (degrees). Training episodes.
-- Table: zero-shot, step 1000, 4000, 7000, 10000, 10000-EMA, "stand still" × 4 skills
-  (`results/displacement.json`; filled in `docs/flux_findings.md` → "Displacement error").
-- Message: fine-tuning cuts the error far below zero-shot; most of the gain comes in the first ~1,000 steps.
+| Model | Scoop ADE / FDE | To mouth ADE / FDE | Tip ADE / FDE | Back to rest ADE / FDE | Mean ADE |
+|---|---|---|---|---|---|
+| stand still | 2.00 / 3.28 | 1.57 / 3.18 | 2.64 / 4.81 | 3.23 / 5.85 | **2.36** |
+| zero-shot | 3.55 / 7.10 | 2.48 / 6.00 | 3.38 / 7.23 | 3.16 / 6.84 | **3.14** |
+| step-1000 | 2.41 / 4.44 | 1.72 / 3.14 | 2.55 / 5.21 | 2.32 / 4.61 | **2.25** |
+| step-4000 | 1.93 / 3.35 | 1.79 / 3.28 | 2.07 / 4.17 | 2.44 / 4.84 | **2.06** |
+| step-7000 | 1.89 / 3.26 | 1.36 / 2.37 | 1.69 / 3.22 | 2.46 / 4.97 | **1.85** |
+| step-10000 | 1.50 / 2.62 | 1.56 / 2.81 | 1.68 / 3.35 | 2.86 / 5.48 | **1.90** |
+| step-10000-EMA | 1.92 / 3.36 | 1.51 / 2.87 | 2.07 / 4.19 | 2.34 / 4.59 | **1.96** |
+
+Wrist-roll ADE on scoop (degrees): stand still 6.34, zero-shot 5.06, step-1000 4.29, step-4000 4.43, step-7000 4.38, step-10000 3.42, step-10000-EMA 4.53.
+
+- Messages:
+  - **Zero-shot is worse than standing still** (mean ADE 3.14° vs 2.36°): the base model actively moves the wrong way on our task.
+  - **Fine-tuning keeps improving the trajectory until ~7,000 steps** (2.25° → 2.06° → 1.85°), although the
+    training loss looked flat after 1,000 steps: the loss curve undersells the training.
+  - Still only ~20 % better than "stand still" overall; the **wrist roll** stays the largest error (scoop 3.4–4.5°).
+  - "Back to rest" barely beats standing still and gets worse with more training (2.32° → 2.86°).
+  - Use a grouped bar chart: mean ADE per model, with the "stand still" line as reference.
 
 ## 10. Our suggestions for BFL
 - Ship SO-101 processors in raw LeRobot degrees and warn when live joints fall outside the normalization range.
