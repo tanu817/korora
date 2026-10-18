@@ -84,7 +84,7 @@ class FluxHands:
                     self._process = None
 
     def stop(self) -> None:
-        """Terminate the active rollout so a voice stop takes effect promptly."""
+        """Terminate the active rollout so a stop takes effect promptly."""
         with self._process_lock:
             process = self._process
 

@@ -37,7 +37,7 @@ The instruction text lives in `feeder/config.py` and is identical in recording, 
  ┌──────────────────────────────────────────┐            ┌──────────────────────────────┐
  │ HARNESS  feeder/chain.py                  │            │ HANDS  FLUX 3 Action (7B)    │
  │  sends one instruction per step, logs it, │            │  + our LoRA                  │
- │  optional human check + retry, voice      │            │                              │
+ │  optional human check + retry             │            │                              │
  │                                           │  ~1/s      │  scene + wrist images        │
  │ BRIDGE  feeder/flux_remote.py  ──────────────────────▶ │  8-tick joint + command      │
  │  reads joints + cameras at 30 Hz,         │  history,  │  history, instruction        │
@@ -137,11 +137,6 @@ python -m feeder.chain --check --steps to_mouth,feed,back_to_rest          # a p
 Every real run first moves slowly to the demo start pose (`--no-reset` skips it). Keep a hand on the
 follower's power switch.
 
-### 3. Voice control
-`live_transcription.py`: say "feed me" to start the chain and "stop" to stop. Set
-`FLUX_SERVER=http://localhost:8001` and `FEEDER_DRY_RUN=false` to drive the arm through the bridge.
-Test without microphone or robot: `python live_transcription.py --test`.
-
 ### Recording and training
 Demos were recorded with LeLab (leader-arm teleoperation), merged with `lerobot-edit-dataset` and
 trained with the `lora.json` that ships with the checkpoint. Laptop setup and recording scripts are in
@@ -157,7 +152,6 @@ trained with the `lora.json` that ships with the checkpoint. Laptop setup and re
 | `feeder/flux_remote.py` | Bridge, robot side: arm, cameras, FLUX history, safety, start pose, trajectories |
 | `feeder/config.py` | Instructions, step durations, start pose, colour targets, command limits |
 | `feeder/flux_hands.py` | Alternative hands with `lerobot-rollout` (needs a local GPU) |
-| `live_transcription.py` | Voice control ("feed me" / "stop") |
 | `scripts/fix_flux_normalization.py` | SO-101 normalization fix applied to a checkpoint copy |
 | `scripts/eval_displacement.py` | ADE/FDE of checkpoints on the demos |
 | `scripts/attention_maps.py` | What the action tokens attend to |
