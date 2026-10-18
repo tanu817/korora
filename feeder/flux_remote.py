@@ -226,9 +226,6 @@ class RemoteFluxHands:
         log.writerow(["t", "new_chunk"] + [f"state_{j}" for j in JOINTS] + [f"cmd_{j}" for j in JOINTS]
                      + [f"sent_{j}" for j in JOINTS])
         t_start = time.perf_counter()
-        goal = config.GOAL_POSE.get(key)
-        goal = None if goal is None else np.array(goal, dtype=np.float32)
-        closest = np.inf
         ticks_left = round(duration * FPS)
         # safety cap if the GPU is very slow: the motion itself plus up to 10 s per FLUX request
         deadline = time.perf_counter() + duration + 10 * math.ceil(ticks_left / self.s.exec_steps)
@@ -254,14 +251,6 @@ class RemoteFluxHands:
                 self.last_sent = sent
             log.writerow([round(tick - t_start, 3), int(new_chunk)] + [round(float(v), 2) for v in state]
                          + [round(float(v), 2) for v in command] + [round(float(v), 2) for v in self.last_sent])
-            if goal is not None:
-                dist = float(np.abs(state[:4] - goal).max())
-                closest = min(closest, dist)
-                if dist <= config.GOAL_REACHED_DEG or (
-                    closest <= config.GOAL_NEAR_DEG and dist >= closest + config.GOAL_PASSED_DEG
-                ):
-                    print(f"   goal pose reached (closest {closest:.1f} deg) after {(tick - t_start):.0f} s")
-                    break
             time.sleep(max(0.0, 1 / FPS - (time.perf_counter() - tick)))
         log_file.close()
         print(f"   trajectory saved: {log_path}")
