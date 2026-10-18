@@ -177,4 +177,5 @@ trained with the `lora.json` that ships with the checkpoint. Laptop setup and re
 
 ## Team
 
-Team Korora: _names_. Built with LeRobot, LeLab, FLUX 3 Action and RunPod.
+Team Korora: Tanusri Madhalam, Ece Gungor, Krishna Prakash, Arnav Gupta. Built with LeRobot, LeLab,
+FLUX 3 Action and RunPod.
