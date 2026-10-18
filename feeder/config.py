@@ -9,11 +9,11 @@ INSTRUCTIONS = {
     "scoop": "Scoop food from the bowl",
     "to_mouth": "Bring the spoon to the mouth",
     "feed": "Tip the food into the mouth",
-    "back_to_bowl": "Move the spoon back to the bowl",
+    "back_to_rest": "Move the spoon back to the rest position",
 }
 
 # The chain for one bite. The harness repeats it for several bites.
-BITE = ["scoop", "to_mouth", "feed", "back_to_bowl"]
+BITE = ["scoop", "to_mouth", "feed", "back_to_rest"]
 BITES = 3
 
 # Seconds FLUX gets for each subtask in one rollout. Tune after testing.
@@ -21,5 +21,5 @@ DURATIONS = {
     "scoop": 15,
     "to_mouth": 12,
     "feed": 8,
-    "back_to_bowl": 12,
+    "back_to_rest": 12,
 }

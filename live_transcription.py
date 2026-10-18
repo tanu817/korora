@@ -306,7 +306,7 @@ class FeedingSequence:
                     return
                 if not self._do("to_mouth"):
                     return
-                if not self._do("back_to_bowl"):
+                if not self._do("back_to_rest"):
                     return
 
             self._do("place_spoon")

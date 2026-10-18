@@ -30,11 +30,11 @@
 - Keep a log of: successful attempts, total attempts, completed task steps, recoveries, interventions. → `results/log.csv`
 
 ## Compute situation (as of Sat 12:45)
-- **No track compute.** AWS access is promised "later" → use it for LoRA training (needs a large NVIDIA GPU, ideally 48–80 GB, Ubuntu).
-- **Teammate's Lenovo Legion** (Windows + WSL2 Ubuntu): for zero-shot runs/rollout only if its GPU has enough VRAM (~24 GB+). Being set up now.
+- **No track compute.** AWS access is promised "later" → use it for **everything FLUX**: zero-shot runs, LoRA training and rollout (needs a large NVIDIA GPU: ~24 GB+ for inference, ideally 48–80 GB for training, Ubuntu).
+- **Teammate's Lenovo Legion** (native Ubuntu 24.04): RTX 3070 Mobile, **8 GB VRAM → cannot run FLUX**. Used for teleop + recording demos only. Disk is nearly full — watch free space while recording.
 - **Tanu's laptop** (Windows on ARM, no NVIDIA GPU): code, brain/sim, git. Cannot run FLUX.
 - Recorded datasets must be **pushed to the Hugging Face Hub** so AWS can pull them for training.
-- Calibration files must be **copied** to whichever machine runs the arm (same robot id `so101`, leader id `leader`).
+- Calibration files must be **copied** to whichever machine runs the arm (same robot id `follower`, leader id `leader` — matches the calibration file names in `linux_transfer/calibration/`).
 
 ## Hardware
 - SO-101 follower arm + SO-101 leader arm (for teleoperation / recording demos). **Not yet calibrated.**
@@ -56,7 +56,7 @@ the "mouth" is a cup the food is tipped into — never a real person's face.**
 1. Scoop food from the bowl
 2. Bring the spoon to the mouth cup (keep it level, don't spill)
 3. Tip the food into the mouth cup
-4. Move the spoon back to the bowl
+4. Move the spoon back to the rest position
 5. Repeat 1–4 for several bites (longer chain = higher score)
 
 ### Scene
@@ -181,9 +181,9 @@ Sanity check: load `models/flux-3-action-so101/config.json` and print `camera_ke
 lerobot-rollout \
   --strategy.type=base --inference.type=sync \
   --policy.path=<checkpoint path> [--policy.use_peft=true for our LoRA] --policy.device=cuda \
-  --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=so101 \
+  --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=follower \
   --robot.use_degrees=true \
-  --robot.cameras='{"scene":{"type":"opencv","index_or_path":0,"width":640,"height":480,"fps":30},"wrist":{"type":"opencv","index_or_path":1,"width":640,"height":480,"fps":30}}' \
+  --robot.cameras='{"scene":{"type":"opencv","index_or_path":0,"width":640,"height":480,"fps":30},"wrist":{"type":"opencv","index_or_path":2,"width":640,"height":480,"fps":30}}' \
   --fps=30 --task="<instruction>" --duration=30
 ```
 - Zero-shot: `--policy.path=$policy_dir` without `use_peft`.

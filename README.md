@@ -13,7 +13,7 @@ scoops food, brings it to the mouth, tips it in and repeats, bite after bite. Ev
 1. Scoop food from the bowl
 2. Bring the spoon to the mouth (cup)
 3. Tip the food into the mouth
-4. Move the spoon back to the bowl
+4. Move the spoon back to the rest position
 5. Repeat 1–4 for several bites
 
 Instruction text: `feeder/config.py`.
