@@ -123,6 +123,16 @@ Full write-up with evidence for BFL: **[docs/flux_findings.md](docs/flux_finding
 
 ## Run it
 
+### The demo in two commands (as it ran best)
+```sh
+bash pod/serve_demo.sh                                   # on the GPU pod: step 12,000 + step 10,000 side by side
+POD="root@<pod ip> -p <pod ssh port>" bash scripts/run_demo.sh   # on the laptop: tunnels + the full chain, ARM MOVES
+```
+Scoop and tip use LoRA step 12,000 (trained on the extra roll-focused demos), to the mouth and back to
+rest use step 10,000; each step goes to the model that does it best. Before running: food bowl heaped on
+its tape mark, paper cup on its side on its tape mark, hand on the follower's power switch, catch the arm
+at the end. `BITES=3` runs several bites.
+
 ### 1. GPU (Linux, NVIDIA, CUDA 12.8)
 See [`pod/README.md`](pod/README.md). In short:
 ```sh
