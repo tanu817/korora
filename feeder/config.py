@@ -16,6 +16,16 @@ INSTRUCTIONS = {
 BITE = ["scoop", "to_mouth", "feed", "back_to_rest"]
 BITES = 3
 
+# Mean scene-camera RGB of each skill's training demos. The scene camera turned pink midway through
+# recording (scoop/to_mouth demos are yellowish, feed/back_to_rest pink), so the bridge rescales the live
+# scene colors to match the skill being run. Measured from ArnavG07/korora_spoon_feed.
+SCENE_MEAN_RGB = {
+    "scoop": (190, 156, 104),
+    "to_mouth": (185, 151, 95),
+    "feed": (215, 110, 115),
+    "back_to_rest": (215, 113, 118),
+}
+
 # Seconds of arm MOTION per subtask (pauses while FLUX plans don't count).
 # ~90th percentile of the recorded demo lengths. Tune after testing.
 DURATIONS = {

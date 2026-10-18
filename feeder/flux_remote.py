@@ -51,6 +51,7 @@ class RemoteSettings:
     confirm_each: bool = True            # ask before every subtask
     jpeg_quality: int = 90
     exec_steps: int = 10                 # execute this many of each predicted chunk, then replan
+    match_scene_colors: bool = True      # rescale scene colors to the running skill's demos (config.SCENE_MEAN_RGB)
 
 
 def encode_jpeg(rgb: np.ndarray, quality: int) -> str:
@@ -72,6 +73,8 @@ class RemoteFluxHands:
         self.last_command: np.ndarray | None = None
         self.last_sent: np.ndarray | None = None  # rate limit is applied between consecutive sent goals
         self.gripper_hold: float | None = None
+        self.scene_target: np.ndarray | None = None  # demo mean RGB of the running skill
+        self.scene_gain: np.ndarray | None = None    # per-channel gain, fixed at the start of each step
         self._stop = threading.Event()
 
     def _get_info(self) -> dict:
@@ -97,8 +100,24 @@ class RemoteFluxHands:
                 max_relative_target=self.s.emergency_limit_deg,
             )
         )
-        robot.connect(calibrate=False)
-        return robot
+        # Feetech buses occasionally return a corrupted packet while connecting. Retry once, and never
+        # leave the motors stiff behind a failed connect.
+        for attempt in (1, 2):
+            try:
+                robot.connect(calibrate=False)
+                return robot
+            except ConnectionError as e:
+                print(f"   connecting to the arm failed (attempt {attempt}): {e}")
+                for cleanup in (
+                    robot.bus.disable_torque,
+                    lambda: robot.bus.disconnect(disable_torque=False),
+                    *(cam.disconnect for cam in robot.cameras.values()),
+                ):
+                    try:
+                        cleanup()
+                    except Exception:
+                        pass
+        raise ConnectionError("Could not connect to the arm; motors switched off")
 
     def _observe(self) -> None:
         """One tick of history, like the synchronous preprocessor: the first tick fills all slots."""
@@ -108,7 +127,13 @@ class RemoteFluxHands:
             self.last_command = state.copy()
             self.last_sent = state.copy()
             self.gripper_hold = float(state[-1])
-        entry = (state, obs["scene"], obs["wrist"], self.last_command.copy())
+        scene = obs["scene"]
+        if self.scene_target is not None:
+            if self.scene_gain is None:
+                self.scene_gain = np.clip(self.scene_target / scene.reshape(-1, 3).mean(0), 0.5, 2.0)
+                print(f"   scene color gain (R, G, B): {np.round(self.scene_gain, 2)}")
+            scene = np.clip(scene * self.scene_gain, 0, 255).astype(np.uint8)
+        entry = (state, scene, obs["wrist"], self.last_command.copy())
         for _ in range(self.n_obs if not self.history else 1):
             self.history.append(entry)
 
@@ -138,6 +163,10 @@ class RemoteFluxHands:
         """Execute `duration` seconds of motion (30 Hz ticks). Waiting for FLUX between chunks
         doesn't count, so step lengths match the demo lengths whatever the GPU speed."""
         self._stop.clear()
+        key = next((k for k, text in config.INSTRUCTIONS.items() if text == task), None)
+        target = config.SCENE_MEAN_RGB.get(key) if self.s.match_scene_colors else None
+        self.scene_target = None if target is None else np.array(target, dtype=np.float32)
+        self.scene_gain = None
         queue: deque = deque()  # a new instruction never inherits commands planned for the old one
         ticks_left = round(duration * FPS)
         # safety cap if the GPU is very slow: the motion itself plus up to 10 s per FLUX request
@@ -188,12 +217,18 @@ def main() -> None:
                         help="actions executed per FLUX request before replanning (model predicts 32)")
     parser.add_argument("--start-delay", type=float, default=3.0,
                         help="seconds the arm holds still after the motors switch on, so hands can let go")
+    parser.add_argument("--no-color-match", action="store_true", help="send the scene camera colors unchanged")
     args = parser.parse_args()
 
     if args.task not in config.INSTRUCTIONS.values():
         print(f"WARNING: {args.task!r} is not one of the trained instructions in feeder/config.py")
     hands = RemoteFluxHands(
-        RemoteSettings(server=args.server, no_motion=args.no_motion, exec_steps=args.exec_steps)
+        RemoteSettings(
+            server=args.server,
+            no_motion=args.no_motion,
+            exec_steps=args.exec_steps,
+            match_scene_colors=not args.no_color_match,
+        )
     )
     try:
         if not args.no_motion and not args.yes:
