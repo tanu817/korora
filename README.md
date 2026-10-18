@@ -81,6 +81,12 @@ instructions it pushed or knocked over the cup.
 - *Back to rest* moves in the right direction. *Tip* doesn't roll far enough, for the same reason as
   the scoop.
 
+**Final demo run** (14:10, autonomous, no intervention): step 12,000 for scoop and tip, step 10,000 for
+to the mouth and back to rest, each step sent to the model that does it best. It **scooped the food
+perfectly** (full wrist roll to 85°), swung toward the mouth cup, made the full tipping roll (126°)
+and returned to rest within 2.8°. The spoon didn't get inside the mouth cup: the step-10,000 move to
+the mouth stayed slightly low.
+
 **Trajectory error** (open loop, next 20 steps, degrees; `results/displacement.json`):
 
 | Model | Mean ADE over 4 skills |
