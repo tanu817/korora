@@ -16,10 +16,11 @@ INSTRUCTIONS = {
 BITE = ["scoop", "to_mouth", "feed", "back_to_rest"]
 BITES = 3
 
-# Seconds FLUX gets for each subtask in one rollout. Tune after testing.
+# Seconds of arm MOTION per subtask (pauses while FLUX plans don't count).
+# ~90th percentile of the recorded demo lengths. Tune after testing.
 DURATIONS = {
-    "scoop": 15,
-    "to_mouth": 12,
-    "feed": 8,
-    "back_to_rest": 12,
+    "scoop": 11,
+    "to_mouth": 10,
+    "feed": 9,
+    "back_to_rest": 6,
 }

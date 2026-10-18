@@ -30,8 +30,23 @@ Instruction text: `feeder/config.py`.
 
 ## Run with FLUX on the real arm ⚠️ moves the arm
 
-_TODO: harness entry point._ `feeder/flux_hands.py` runs `lerobot-rollout` once per subtask
-(see `CLAUDE.md` for the exact commands).
+FLUX runs on a rented GPU (RunPod); the arm and cameras are on the laptop. A small bridge connects them:
+`feeder/flux_server.py` keeps FLUX loaded on the GPU, `feeder/flux_remote.py` drives the arm and sends
+FLUX's 8-tick history in one request per ~1 s action chunk.
+
+```sh
+# on the GPU pod (zero-shot model, or add --use-peft with our LoRA checkpoint)
+python -m feeder.flux_server --policy-path models/flux-3-action-so101-normfix
+# on the laptop: tunnel, then the chain
+ssh -N -L 8001:localhost:8000 root@<pod ip> -p <pod port>
+python -m feeder.chain --sim --bites 2                                    # simulation, nothing moves
+python -m feeder.chain --server http://localhost:8001 --bites 3           # autonomous, arm moves
+python -m feeder.chain --server http://localhost:8001 --check             # a person judges / retries
+python -m feeder.flux_remote --task "Scoop food from the bowl" --no-motion  # one skill, arm stays still
+```
+
+Safety in the bridge: 4°/tick rate limit between commands, 30° emergency limit, gripper held
+(the spoon is taped), start delay to let go of the arm. Every step is appended to `results/log.csv`.
 
 ## Results
 
@@ -85,7 +100,11 @@ cached by Faster-Whisper, not stored in this repository.
 |---|---|
 | `feeder/config.py` | **Edit here**: instruction text + time per step |
 | `feeder/interfaces.py` | Hands / Eyes interfaces |
-| `feeder/flux_hands.py` | Calls FLUX 3 Action (`lerobot-rollout`) per subtask |
+| `feeder/chain.py` | **The harness**: runs the bite chain, logs every step, optional human check + retry |
+| `feeder/flux_server.py` | Bridge, GPU side: FLUX loaded once, one request per action chunk |
+| `feeder/flux_remote.py` | Bridge, robot side: arm + cameras + FLUX history, safety limits |
+| `feeder/flux_hands.py` | Alternative hands: `lerobot-rollout` per subtask (needs a local GPU) |
+| `scripts/fix_flux_normalization.py` | Organizers' SO-101 joint normalization fix, applied to a checkpoint copy |
 | `results/log.csv` | Zero-shot vs post-training results |
 
 The earlier shell-game version is saved under the git tag `shell-game-archive`.

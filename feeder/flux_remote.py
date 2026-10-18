@@ -133,10 +133,14 @@ class RemoteFluxHands:
         return np.array(reply["actions"], dtype=np.float32)
 
     def run(self, task: str, duration: float) -> None:
+        """Execute `duration` seconds of motion (30 Hz ticks). Waiting for FLUX between chunks
+        doesn't count, so step lengths match the demo lengths whatever the GPU speed."""
         self._stop.clear()
         queue: deque = deque()  # a new instruction never inherits commands planned for the old one
-        end = time.perf_counter() + duration
-        while time.perf_counter() < end and not self._stop.is_set():
+        ticks_left = round(duration * FPS)
+        deadline = time.perf_counter() + 5 * duration  # safety cap if the GPU is very slow
+        while ticks_left > 0 and time.perf_counter() < deadline and not self._stop.is_set():
+            ticks_left -= 1
             tick = time.perf_counter()
             self._observe()
             if not queue:
