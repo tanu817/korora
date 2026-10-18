@@ -32,6 +32,15 @@ START_GRIPPER_COMMAND = {"scoop": 0.0, "to_mouth": 100.0, "feed": 0.0, "back_to_
 # room to push through the food.
 COMMAND_LEAD_LIMIT = (6.0, 8.0, 8.0, 7.0, 20.0)
 
+# Goal pose (pan, lift, elbow, wrist_flex; median end of the demos) at which the harness ends a step.
+# FLUX doesn't know when a step is done: live, to_mouth reached the mouth after 6-8 s and then either
+# overshot or, in a slow run, ran out of time. The step stops once within GOAL_REACHED_DEG, or, after
+# coming within GOAL_NEAR_DEG, as soon as the arm moves GOAL_PASSED_DEG away from its closest point.
+GOAL_POSE = {"to_mouth": (-11.9, -47.0, 37.7, 42.9)}
+GOAL_REACHED_DEG = 8.0
+GOAL_NEAR_DEG = 30.0
+GOAL_PASSED_DEG = 3.0
+
 # Mean scene-camera RGB of each skill's training demos. The scene camera turned pink midway through
 # recording (scoop/to_mouth demos are yellowish, feed/back_to_rest pink), so the bridge rescales the live
 # scene colors to match the skill being run. Measured from ArnavG07/korora_spoon_feed.
@@ -46,7 +55,7 @@ SCENE_MEAN_RGB = {
 # ~90th percentile of the recorded demo lengths. Tune after testing.
 DURATIONS = {
     "scoop": 15,  # step 12000 live: full wrist roll reached at 13.7 s
-    "to_mouth": 8,  # live test: at the demo end pose (within 6 deg) after 7 s, overshoots if run longer
+    "to_mouth": 14,  # upper limit; the step ends at the demo goal pose (GOAL_POSE), usually after 6-8 s
     "feed": 9,
     "back_to_rest": 10,  # live: only ~2/3 of the way to rest after 6 s
 }
