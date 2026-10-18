@@ -116,7 +116,7 @@ class RemoteFluxHands:
             try:
                 robot.connect(calibrate=False)
                 return robot
-            except ConnectionError as e:
+            except (ConnectionError, TimeoutError) as e:  # camera timeouts raise TimeoutError
                 print(f"   connecting to the arm failed (attempt {attempt}): {e}")
                 time.sleep(5)
                 for cleanup in (
