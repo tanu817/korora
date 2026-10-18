@@ -45,7 +45,7 @@ SCENE_MEAN_RGB = {
 # Seconds of arm MOTION per subtask (pauses while FLUX plans don't count).
 # ~90th percentile of the recorded demo lengths. Tune after testing.
 DURATIONS = {
-    "scoop": 11,
+    "scoop": 15,  # step 12000 live: full wrist roll reached at 13.7 s
     "to_mouth": 8,  # live test: at the demo end pose (within 6 deg) after 7 s, overshoots if run longer
     "feed": 9,
     "back_to_rest": 10,  # live: only ~2/3 of the way to rest after 6 s
