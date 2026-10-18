@@ -36,9 +36,9 @@ COMMAND_LEAD_LIMIT = (6.0, 8.0, 8.0, 7.0, 20.0)
 # recording (scoop/to_mouth demos are yellowish, feed/back_to_rest pink), so the bridge rescales the live
 # scene colors to match the skill being run. Measured from ArnavG07/korora_spoon_feed.
 SCENE_MEAN_RGB = {
-    "scoop": (190, 156, 104),
+    "scoop": (172, 150, 144),  # 15 new daylight demos (13:00, upweighted 3x in v2); old ones were (190, 156, 104)
     "to_mouth": (185, 151, 95),
-    "feed": (215, 110, 115),
+    "feed": (159, 136, 131),  # 14 new daylight demos (13:00, upweighted 3x in v2); old ones were (215, 110, 115)
     "back_to_rest": (215, 113, 118),
 }
 
