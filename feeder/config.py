@@ -48,5 +48,5 @@ DURATIONS = {
     "scoop": 11,
     "to_mouth": 8,  # live test: at the demo end pose (within 6 deg) after 7 s, overshoots if run longer
     "feed": 9,
-    "back_to_rest": 6,
+    "back_to_rest": 10,  # live: only ~2/3 of the way to rest after 6 s
 }
