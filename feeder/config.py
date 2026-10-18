@@ -46,7 +46,7 @@ SCENE_MEAN_RGB = {
 # ~90th percentile of the recorded demo lengths. Tune after testing.
 DURATIONS = {
     "scoop": 11,
-    "to_mouth": 10,
+    "to_mouth": 8,  # live test: at the demo end pose (within 6 deg) after 7 s, overshoots if run longer
     "feed": 9,
     "back_to_rest": 6,
 }

@@ -59,13 +59,15 @@ def ask(instruction: str) -> str:
     return {"": "ok", "r": "retry", "q": "quit"}.get(answer, "ok")
 
 
-def run_chain(hands: Hands, bites: int, check: bool, max_retries: int, phase: str, checkpoint: str) -> None:
-    steps_total = bites * len(config.BITE)
+def run_chain(hands: Hands, bites: int, check: bool, max_retries: int, phase: str, checkpoint: str,
+              steps: list[str] | None = None) -> None:
+    steps = steps or config.BITE
+    steps_total = bites * len(steps)
     completed = recoveries = 0
     stopped = False
     for bite in range(1, bites + 1):
         print(f"\n=== Bite {bite}/{bites} ===")
-        for key in config.BITE:
+        for key in steps:
             instruction = config.INSTRUCTIONS[key]
             for attempt in range(1, max_retries + 2):
                 print(f"-> {instruction} (attempt {attempt})")
@@ -96,6 +98,7 @@ def run_chain(hands: Hands, bites: int, check: bool, max_retries: int, phase: st
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--bites", type=int, default=config.BITES)
+    parser.add_argument("--steps", help=f"comma-separated subset of {','.join(config.BITE)} (default: all)")
     parser.add_argument("--check", action="store_true", help="a person judges each step and can ask for a retry")
     parser.add_argument("--max-retries", type=int, default=1, help="retries per step in --check mode")
     parser.add_argument("--phase", default="post-training", help="zero-shot or post-training (for the log)")
@@ -130,7 +133,10 @@ def main() -> None:
             time.sleep(args.start_delay)
             if not args.no_reset:
                 hands.move_to_start()
-        run_chain(hands, args.bites, args.check, args.max_retries, phase, checkpoint)
+        steps = args.steps.split(",") if args.steps else None
+        if steps and any(k not in config.INSTRUCTIONS for k in steps):
+            raise SystemExit(f"--steps must be from {list(config.INSTRUCTIONS)}")
+        run_chain(hands, args.bites, args.check, args.max_retries, phase, checkpoint, steps)
     except KeyboardInterrupt:
         hands.stop()
         print("\nStopped.")
