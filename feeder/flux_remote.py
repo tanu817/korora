@@ -59,7 +59,18 @@ class RemoteSettings:
     confirm_each: bool = True            # ask before every subtask
     jpeg_quality: int = 90
     exec_steps: int = 10                 # execute this many of each predicted chunk, then replan
+    # Per-skill FLUX server (instruction key -> URL), e.g. a checkpoint that is better at one skill.
+    server_map: dict | None = None
     match_scene_colors: bool = True      # rescale scene colors to the running skill's demos (config.SCENE_MEAN_RGB)
+
+
+def parse_server_map(text: str | None) -> dict:
+    """'to_mouth=http://localhost:8003,back_to_rest=http://localhost:8003' -> {key: url}."""
+    pairs = [item.split("=", 1) for item in (text or "").split(",") if item]
+    bad = [k for k, _ in pairs if k not in config.INSTRUCTIONS]
+    if bad:
+        raise SystemExit(f"--server-map keys must be from {list(config.INSTRUCTIONS)}, got {bad}")
+    return dict(pairs)
 
 
 def encode_jpeg(rgb: np.ndarray, quality: int) -> str:
@@ -164,8 +175,10 @@ class RemoteFluxHands:
             "wrist": [encode_jpeg(first[2], q), encode_jpeg(last[2], q)],
         }
         t0 = time.perf_counter()
+        key = next((k for k, text in config.INSTRUCTIONS.items() if text == task), None)
+        server = (self.s.server_map or {}).get(key, self.s.server)
         http = urllib.request.Request(
-            self.s.server + "/act", data=json.dumps(req).encode(), headers={"Content-Type": "application/json"}
+            server + "/act", data=json.dumps(req).encode(), headers={"Content-Type": "application/json"}
         )
         try:
             with urllib.request.urlopen(http, timeout=30) as r:

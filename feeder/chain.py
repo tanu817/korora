@@ -104,6 +104,7 @@ def main() -> None:
     parser.add_argument("--phase", default="post-training", help="zero-shot or post-training (for the log)")
     parser.add_argument("--checkpoint", default="", help="which model ran, for the log")
     parser.add_argument("--server", default="http://localhost:8001")
+    parser.add_argument("--server-map", help="per-skill servers, e.g. to_mouth=http://localhost:8003")
     parser.add_argument("--sim", action="store_true", help="no arm, no GPU: print the steps only")
     parser.add_argument("--yes", action="store_true", help="skip the keyboard confirmation (confirmed elsewhere)")
     parser.add_argument("--start-delay", type=float, default=3.0, help="seconds to let go of the arm")
@@ -119,10 +120,11 @@ def main() -> None:
         hands = SimHands()
         checkpoint, phase = args.checkpoint or "sim", "sim"
     else:
-        from .flux_remote import RemoteFluxHands, RemoteSettings
+        from .flux_remote import RemoteFluxHands, RemoteSettings, parse_server_map
 
         hands = RemoteFluxHands(
-            RemoteSettings(server=args.server, confirm_each=False, exec_steps=args.exec_steps)
+            RemoteSettings(server=args.server, confirm_each=False, exec_steps=args.exec_steps,
+                           server_map=parse_server_map(args.server_map))
         )
         checkpoint, phase = args.checkpoint or hands.info["policy_path"], args.phase
     try:
