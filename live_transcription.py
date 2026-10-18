@@ -112,13 +112,19 @@ class Config:
         os.environ.get("FLUX_USE_PEFT", "false").lower()
         in {"1", "true", "yes"}
     )
-    FLUX_ROBOT_PORT = os.environ.get("FLUX_ROBOT_PORT", "/dev/ttyACM0")
+    FLUX_ROBOT_PORT = os.environ.get(
+        "FLUX_ROBOT_PORT",
+        "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14114369-if00",
+    )
     FLUX_SCENE_CAMERA = parse_camera_value(
         os.environ.get("FLUX_SCENE_CAMERA", "0")
     )
     FLUX_WRIST_CAMERA = parse_camera_value(
-        os.environ.get("FLUX_WRIST_CAMERA", "1")
+        os.environ.get("FLUX_WRIST_CAMERA", "2")
     )
+    # FLUX running on a remote GPU through feeder/flux_server.py (e.g. the
+    # RunPod tunnel http://localhost:8001). Empty = local lerobot-rollout.
+    FLUX_SERVER = os.environ.get("FLUX_SERVER", "")
 
 
 # ============================================================
@@ -297,19 +303,11 @@ class FeedingSequence:
 
     def _run(self) -> None:
         try:
-            if not self._do("pick_spoon"):
-                return
-
             for bite in range(1, self.bites + 1):
                 print(f"Starting bite {bite}/{self.bites}.")
-                if not self._do("scoop"):
-                    return
-                if not self._do("to_mouth"):
-                    return
-                if not self._do("back_to_bowl"):
-                    return
-
-            self._do("place_spoon")
+                for key in feeder_config.BITE:
+                    if not self._do(key):
+                        return
         except Exception as exc:
             print(f"Feeding sequence failed: {exc}")
         finally:
@@ -510,16 +508,29 @@ def main() -> None:
     if Config.DEVICE == "cuda":
         setup_nvidia_dlls()
 
-    hands = FluxHands(
-        FluxSettings(
-            policy_path=Config.FLUX_POLICY_PATH,
-            use_peft=Config.FLUX_USE_PEFT,
-            port=Config.FLUX_ROBOT_PORT,
-            scene_cam=Config.FLUX_SCENE_CAMERA,
-            wrist_cam=Config.FLUX_WRIST_CAMERA,
-            dry_run=Config.FEEDER_DRY_RUN,
+    if Config.FLUX_SERVER and not Config.FEEDER_DRY_RUN:
+        from feeder.flux_remote import RemoteFluxHands, RemoteSettings
+
+        hands = RemoteFluxHands(
+            RemoteSettings(
+                server=Config.FLUX_SERVER,
+                port=Config.FLUX_ROBOT_PORT,
+                scene_cam=Config.FLUX_SCENE_CAMERA,
+                wrist_cam=Config.FLUX_WRIST_CAMERA,
+                confirm_each=False,
+            )
         )
-    )
+    else:
+        hands = FluxHands(
+            FluxSettings(
+                policy_path=Config.FLUX_POLICY_PATH,
+                use_peft=Config.FLUX_USE_PEFT,
+                port=Config.FLUX_ROBOT_PORT,
+                scene_cam=Config.FLUX_SCENE_CAMERA,
+                wrist_cam=Config.FLUX_WRIST_CAMERA,
+                dry_run=Config.FEEDER_DRY_RUN,
+            )
+        )
     feeding_sequence = FeedingSequence(hands, Config.FEEDER_BITES)
 
     audio_buffer = AudioBuffer(

@@ -30,11 +30,11 @@
 - Keep a log of: successful attempts, total attempts, completed task steps, recoveries, interventions. → `results/log.csv`
 
 ## Compute situation (as of Sat 12:45)
-- **No track compute.** AWS access is promised "later" → use it for LoRA training (needs a large NVIDIA GPU, ideally 48–80 GB, Ubuntu).
-- **Teammate's Lenovo Legion** (Windows + WSL2 Ubuntu): for zero-shot runs/rollout only if its GPU has enough VRAM (~24 GB+). Being set up now.
+- **No track compute.** AWS access is promised "later" → use it for **everything FLUX**: zero-shot runs, LoRA training and rollout (needs a large NVIDIA GPU: ~24 GB+ for inference, ideally 48–80 GB for training, Ubuntu).
+- **Teammate's Lenovo Legion** (native Ubuntu 24.04): RTX 3070 Mobile, **8 GB VRAM → cannot run FLUX**. Used for teleop + recording demos only. Disk is nearly full — watch free space while recording.
 - **Tanu's laptop** (Windows on ARM, no NVIDIA GPU): code, brain/sim, git. Cannot run FLUX.
 - Recorded datasets must be **pushed to the Hugging Face Hub** so AWS can pull them for training.
-- Calibration files must be **copied** to whichever machine runs the arm (same robot id `so101`, leader id `leader`).
+- Calibration files must be **copied** to whichever machine runs the arm (same robot id `follower`, leader id `leader` — matches the calibration file names in `linux_transfer/calibration/`).
 
 ## Hardware
 - SO-101 follower arm + SO-101 leader arm (for teleoperation / recording demos). **Not yet calibrated.**
@@ -56,7 +56,7 @@ the "mouth" is a cup the food is tipped into — never a real person's face.**
 1. Scoop food from the bowl
 2. Bring the spoon to the mouth cup (keep it level, don't spill)
 3. Tip the food into the mouth cup
-4. Move the spoon back to the bowl
+4. Move the spoon back to the rest position
 5. Repeat 1–4 for several bites (longer chain = higher score)
 
 ### Scene
@@ -95,7 +95,6 @@ The old shell-game code is kept in git under the tag `shell-game-archive`.
 - Commit to git often with clear messages. Don't commit datasets, model weights, or videos (use .gitignore).
 - Keep dependencies minimal. Pin versions once things work.
 - If something fails twice the same way, stop and explain the problem instead of trying random fixes.
-- **Feature freeze: Sunday ~10:15.** After that, only bug fixes — no new features or refactors.
 
 ## Timeline (Sat 11:15 → Sun ~14:15)
 | Phase | Time | Goal |
@@ -107,7 +106,7 @@ The old shell-game code is kept in git under the tag `shell-game-archive`.
 | 4 Training + brain | 21:15–01:15 | Main training run; brain + vision + sim done |
 | Sleep | 01:15–05:15 | Overnight training run |
 | 5 Test & fix | 05:15–08:15 | Per-skill success rates; extra demos for failures |
-| 6 Full chain | 08:15–10:15 | End-to-end runs; FREEZE at 10:15 |
+| 6 Full chain | 08:15–10:15 | End-to-end runs |
 | 7 Video/slides/repo | 10:15–12:15 | MP4 demo video, deck, README |
 | 8 Submit & rehearse | 12:15–14:15 | Submit by 13:00 |
 
@@ -171,9 +170,12 @@ hf download black-forest-labs/flux-3-action-base \
   --revision 62878e2925e59b7a89ec14463ce89932624c490d \
   --include 'video_vae.safetensors' --include 'text_encoder/*' \
   --local-dir models/flux-3-action-base
-policy_dir="$(pwd)/models/flux-3-action-so101"
+# Normalization fix from the organizers (released quantiles don't match raw LeRobot degrees):
+python ~/korora/scripts/fix_flux_normalization.py models/flux-3-action-so101 models/flux-3-action-so101-normfix
+policy_dir="$(pwd)/models/flux-3-action-so101-normfix"   # use the PATCHED copy everywhere
 encoders_dir="$(pwd)/models/flux-3-action-base"
 ```
+- **Always use the `-normfix` checkpoint** for zero-shot, training and rollout (see `scripts/fix_flux_normalization.py`, source: multimodalart/flux-3-action-so101-sim commit 09edebb). Training and rollout both read normalization from the checkpoint's processor files, so this one patch covers everything. Record in `results/log.csv` that zero-shot used revision c9e13b2 + normfix.
 Sanity check: load `models/flux-3-action-so101/config.json` and print `camera_keys, camera_layout, fps, chunk_size, n_action_steps`; assert fps == 30.
 
 ### Zero-shot / rollout (THIS MOVES THE ARM — confirm both camera views first)
@@ -181,9 +183,9 @@ Sanity check: load `models/flux-3-action-so101/config.json` and print `camera_ke
 lerobot-rollout \
   --strategy.type=base --inference.type=sync \
   --policy.path=<checkpoint path> [--policy.use_peft=true for our LoRA] --policy.device=cuda \
-  --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=so101 \
+  --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=follower \
   --robot.use_degrees=true \
-  --robot.cameras='{"scene":{"type":"opencv","index_or_path":0,"width":640,"height":480,"fps":30},"wrist":{"type":"opencv","index_or_path":1,"width":640,"height":480,"fps":30}}' \
+  --robot.cameras='{"scene":{"type":"opencv","index_or_path":0,"width":640,"height":480,"fps":30},"wrist":{"type":"opencv","index_or_path":2,"width":640,"height":480,"fps":30}}' \
   --fps=30 --task="<instruction>" --duration=30
 ```
 - Zero-shot: `--policy.path=$policy_dir` without `use_peft`.
@@ -191,15 +193,16 @@ lerobot-rollout \
 - For the harness, prefer calling the policy from Python (`Flux3Policy.from_pretrained(...)` + `make_pre_post_processors(...)`) so we can switch `--task` per subtask without restarting.
 
 ### LoRA fine-tune (one GPU)
+Per the model card: the recipe ships with the checkpoint (`lora.json`, copied into the normfix folder),
+and both frozen encoders load automatically from the pinned base repo (config `video_vae_id` / `text_encoder_id`).
 ```sh
-python -m lerobot.scripts.lerobot_train \
-  --config_path=examples/flux3/lora.json \
-  --policy.path="$policy_dir" --policy.device=cuda \
-  --policy.video_vae_id="$encoders_dir/video_vae.safetensors" \
-  --policy.text_encoder_id="$encoders_dir/text_encoder" \
-  --dataset.repo_id=YOUR_ORG/YOUR_SO101_DATASET \
-  --output_dir=outputs/so101_lora
+lerobot-train --config_path="$policy_dir/lora.json" \
+  --policy.path="$policy_dir" \
+  --dataset.repo_id=ArnavG07/korora_spoon_feed \
+  --output_dir=outputs/so101_lora --job_name=korora-lora
 ```
+- Our dataset: `ArnavG07/korora_spoon_feed` (private, 136 episodes, 4 tasks). `lora.json` holds out 20% of episodes for eval (`eval_split: 0.2`).
+- Policy contract (from config.json): history conditioning, 8 observations, 2 visual snapshots, past-command conditioning, joint **deltas** + absolute gripper.
 - Preset: LoRA rank/alpha 32, adapter LR 1e-4, head LR 5e-4, BF16, grad checkpointing, EMA 0.999, batch 2 × grad-accum 4, **10,000 microsteps (= 2,500 optimizer updates)**.
 - Resume: `lerobot-train --config_path=outputs/so101_lora/checkpoints/last/pretrained_model/train_config.json --resume=true`
 - Compare `pretrained_model` vs `pretrained_model_ema` on identical tests — EMA is not automatically better.

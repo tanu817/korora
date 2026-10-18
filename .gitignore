@@ -23,3 +23,5 @@ data/
 .idea/
 .DS_Store
 Thumbs.db
+results/sim_log.csv
+docs/presentation_content.md

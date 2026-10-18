@@ -23,12 +23,12 @@ DEFAULT_DURATION = 15  # seconds, for instructions not listed in config.DURATION
 
 @dataclass
 class FluxSettings:
-    policy_path: str                     # base checkpoint dir (zero-shot) or our LoRA checkpoint
+    policy_path: str                     # flux-3-action-so101-normfix (zero-shot) or our LoRA checkpoint
     use_peft: bool = False               # True for our LoRA checkpoint
-    port: str = "/dev/ttyACM0"
-    robot_id: str = "follower"           # same id as the calibration file
+    port: str = "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14114369-if00"  # follower board
+    robot_id: str = "follower"           # must match the calibration file used for recording
     scene_cam: str | int = 0             # camera index or /dev/videoN
-    wrist_cam: str | int = 1
+    wrist_cam: str | int = 2
     confirm_each: bool = True            # ask before every subtask (recommended at first)
     dry_run: bool = False                # only print the command
 
