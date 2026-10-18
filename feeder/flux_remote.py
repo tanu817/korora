@@ -109,14 +109,16 @@ class RemoteFluxHands:
                 max_relative_target=self.s.emergency_limit_deg,
             )
         )
-        # Feetech buses occasionally return a corrupted packet while connecting. Retry once, and never
+        # Feetech buses occasionally return a corrupted packet while connecting. Retry, and never
         # leave the motors stiff behind a failed connect.
-        for attempt in (1, 2):
+        # The desktop's PipeWire also grabs cameras for a few seconds now and then: wait and retry.
+        for attempt in (1, 2, 3):
             try:
                 robot.connect(calibrate=False)
                 return robot
             except ConnectionError as e:
                 print(f"   connecting to the arm failed (attempt {attempt}): {e}")
+                time.sleep(5)
                 for cleanup in (
                     robot.bus.disable_torque,
                     lambda: robot.bus.disconnect(disable_torque=False),
