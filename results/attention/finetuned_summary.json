@@ -1,0 +1,200 @@
+{
+ "scoop_start": {
+  "task": "Scoop food from the bowl",
+  "episode": 30,
+  "seconds": 0.0,
+  "split": {
+   "text": 0.42629510164260864,
+   "video": 0.2942897081375122,
+   "video_cond": 0.08279897272586823,
+   "action": 0.12272919714450836,
+   "action_cond": 0.0738871619105339,
+   "scene_camera": 0.0518304777935495,
+   "wrist_camera": 0.030968494932318725
+  },
+  "blocks_x_steps": 224,
+  "layout": {
+   "video": 1408,
+   "video_cond": 256,
+   "action": 42,
+   "action_cond": 8
+  },
+  "text_tokens": 320,
+  "id_axes": {
+   "id_spans": [
+    2,
+    8,
+    16,
+    1
+   ],
+   "time_col": 0,
+   "row_col": 1,
+   "col_col": 2
+  }
+ },
+ "scoop_turn_to_bowl": {
+  "task": "Scoop food from the bowl",
+  "episode": 30,
+  "seconds": 1.8,
+  "split": {
+   "text": 0.4159215986728668,
+   "video": 0.3387511074542999,
+   "video_cond": 0.09401120990514755,
+   "action": 0.10891172289848328,
+   "action_cond": 0.0424044206738472,
+   "scene_camera": 0.05787136058440615,
+   "wrist_camera": 0.03613984932074139
+  },
+  "blocks_x_steps": 224,
+  "layout": {
+   "video": 1408,
+   "video_cond": 256,
+   "action": 42,
+   "action_cond": 8
+  },
+  "text_tokens": 320,
+  "id_axes": {
+   "id_spans": [
+    2,
+    8,
+    16,
+    1
+   ],
+   "time_col": 0,
+   "row_col": 1,
+   "col_col": 2
+  }
+ },
+ "scoop_in_food": {
+  "task": "Scoop food from the bowl",
+  "episode": 30,
+  "seconds": 3.6,
+  "split": {
+   "text": 0.40658333897590637,
+   "video": 0.34411659836769104,
+   "video_cond": 0.09407259523868561,
+   "action": 0.11323605477809906,
+   "action_cond": 0.04199150204658508,
+   "scene_camera": 0.05511877161756764,
+   "wrist_camera": 0.03895382362111797
+  },
+  "blocks_x_steps": 224,
+  "layout": {
+   "video": 1408,
+   "video_cond": 256,
+   "action": 42,
+   "action_cond": 8
+  },
+  "text_tokens": 320,
+  "id_axes": {
+   "id_spans": [
+    2,
+    8,
+    16,
+    1
+   ],
+   "time_col": 0,
+   "row_col": 1,
+   "col_col": 2
+  }
+ },
+ "to_mouth": {
+  "task": "Bring the spoon to the mouth",
+  "episode": 69,
+  "seconds": 2.0,
+  "split": {
+   "text": 0.4076642692089081,
+   "video": 0.3157617449760437,
+   "video_cond": 0.0903232991695404,
+   "action": 0.119754359126091,
+   "action_cond": 0.06649640202522278,
+   "scene_camera": 0.057416417958043975,
+   "wrist_camera": 0.03290688121149643
+  },
+  "blocks_x_steps": 224,
+  "layout": {
+   "video": 1408,
+   "video_cond": 256,
+   "action": 42,
+   "action_cond": 8
+  },
+  "text_tokens": 320,
+  "id_axes": {
+   "id_spans": [
+    2,
+    8,
+    16,
+    1
+   ],
+   "time_col": 0,
+   "row_col": 1,
+   "col_col": 2
+  }
+ },
+ "tip": {
+  "task": "Tip the food into the mouth",
+  "episode": 107,
+  "seconds": 2.0,
+  "split": {
+   "text": 0.42597389221191406,
+   "video": 0.3078663945198059,
+   "video_cond": 0.08340282738208771,
+   "action": 0.12340180575847626,
+   "action_cond": 0.05935521423816681,
+   "scene_camera": 0.05002211195072837,
+   "wrist_camera": 0.033380715431359335
+  },
+  "blocks_x_steps": 224,
+  "layout": {
+   "video": 1408,
+   "video_cond": 256,
+   "action": 42,
+   "action_cond": 8
+  },
+  "text_tokens": 320,
+  "id_axes": {
+   "id_spans": [
+    2,
+    8,
+    16,
+    1
+   ],
+   "time_col": 0,
+   "row_col": 1,
+   "col_col": 2
+  }
+ },
+ "back_to_rest": {
+  "task": "Move the spoon back to the rest position",
+  "episode": 126,
+  "seconds": 1.5,
+  "split": {
+   "text": 0.403783917427063,
+   "video": 0.31796717643737793,
+   "video_cond": 0.08989988267421722,
+   "action": 0.12245151400566101,
+   "action_cond": 0.06589765101671219,
+   "scene_camera": 0.05352298392683895,
+   "wrist_camera": 0.03637689874737827
+  },
+  "blocks_x_steps": 224,
+  "layout": {
+   "video": 1408,
+   "video_cond": 256,
+   "action": 42,
+   "action_cond": 8
+  },
+  "text_tokens": 320,
+  "id_axes": {
+   "id_spans": [
+    2,
+    8,
+    16,
+    1
+   ],
+   "time_col": 0,
+   "row_col": 1,
+   "col_col": 2
+  }
+ }
+}
