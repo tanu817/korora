@@ -41,7 +41,11 @@ class Flux:
         cfg.use_peft = use_peft
         cfg.device = "cuda"
         self.cfg = cfg
-        self.policy = _load_pretrained_policy(cfg).to("cuda").eval()
+        policy = _load_pretrained_policy(cfg)
+        if use_peft:
+            # Fold the LoRA into the base weights once: same outputs, no adapter overhead per request.
+            policy = policy.merge_and_unload()
+        self.policy = policy.to("cuda").eval()
         self.pre, self.post = make_pre_post_processors(cfg, pretrained_path=policy_path)
         self.lock = threading.Lock()
 
