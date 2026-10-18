@@ -16,6 +16,16 @@ INSTRUCTIONS = {
 BITE = ["scoop", "to_mouth", "feed", "back_to_rest"]
 BITES = 3
 
+# Joint angles (deg) every scoop demo starts from: mean over the 49 recorded scoop demos.
+# shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll (gripper is held).
+START_POSE = (-5.5, -99.9, 96.4, 52.8, 1.3)
+
+# FLUX's command history must look like the recordings, where "commands" were the LEADER arm's
+# positions. At the start of each step the bridge seeds it with: follower state + this mean
+# leader-follower offset (deg, from the 136 demos) and the skill's typical leader gripper value.
+COMMAND_OFFSET = (0.1, -2.0, -0.4, -0.35, -0.1)
+START_GRIPPER_COMMAND = {"scoop": 0.0, "to_mouth": 100.0, "feed": 0.0, "back_to_rest": 100.0}
+
 # Mean scene-camera RGB of each skill's training demos. The scene camera turned pink midway through
 # recording (scoop/to_mouth demos are yellowish, feed/back_to_rest pink), so the bridge rescales the live
 # scene colors to match the skill being run. Measured from ArnavG07/korora_spoon_feed.

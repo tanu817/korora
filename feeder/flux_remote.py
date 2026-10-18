@@ -73,6 +73,7 @@ class RemoteFluxHands:
         self.last_command: np.ndarray | None = None
         self.last_sent: np.ndarray | None = None  # rate limit is applied between consecutive sent goals
         self.gripper_hold: float | None = None
+        self.start_gripper_command: float | None = None  # leader gripper value at the start of the skill's demos
         self.scene_target: np.ndarray | None = None  # demo mean RGB of the running skill
         self.scene_gain: np.ndarray | None = None    # per-channel gain, fixed at the start of each step
         self._stop = threading.Event()
@@ -124,9 +125,14 @@ class RemoteFluxHands:
         obs = self.robot.get_observation()
         state = np.array([obs[f"{j}.pos"] for j in JOINTS], dtype=np.float32)
         if self.last_command is None:
+            # seed the command history like the start of a recorded demo (commands = leader positions)
             self.last_command = state.copy()
+            self.last_command[:5] += np.array(config.COMMAND_OFFSET, dtype=np.float32)
+            if self.start_gripper_command is not None:
+                self.last_command[5] = self.start_gripper_command
             self.last_sent = state.copy()
-            self.gripper_hold = float(state[-1])
+            if self.gripper_hold is None:
+                self.gripper_hold = float(state[-1])
         scene = obs["scene"]
         if self.scene_target is not None:
             if self.scene_gain is None:
@@ -159,6 +165,23 @@ class RemoteFluxHands:
         print(f"   chunk: round trip {time.perf_counter() - t0:.2f} s (GPU {reply['infer_s']:.2f} s)")
         return np.array(reply["actions"], dtype=np.float32)
 
+    def move_to_start(self, speed_deg: float = 1.0) -> None:
+        """Slowly move to config.START_POSE (not FLUX: the reset a person does before each demo),
+        then forget the history so FLUX starts fresh, as at the start of a recorded demo."""
+        state = self.robot.get_observation()
+        current = np.array([state[f"{j}.pos"] for j in JOINTS], dtype=np.float32)
+        target = current.copy()
+        target[:5] = config.START_POSE
+        steps = max(1, int(np.ceil(np.abs(target - current).max() / speed_deg)))
+        print(f"   moving to start pose over {steps / FPS:.1f} s: {np.round(target[:5], 1)}")
+        for k in range(1, steps + 1):
+            goal = current + (target - current) * k / steps
+            self.robot.send_action({f"{j}.pos": float(v) for j, v in zip(JOINTS, goal, strict=True)})
+            time.sleep(1 / FPS)
+        time.sleep(1.0)  # settle
+        self.history.clear()
+        self.last_command = None
+
     def run(self, task: str, duration: float) -> None:
         """Execute `duration` seconds of motion (30 Hz ticks). Waiting for FLUX between chunks
         doesn't count, so step lengths match the demo lengths whatever the GPU speed."""
@@ -167,6 +190,10 @@ class RemoteFluxHands:
         target = config.SCENE_MEAN_RGB.get(key) if self.s.match_scene_colors else None
         self.scene_target = None if target is None else np.array(target, dtype=np.float32)
         self.scene_gain = None
+        # every recorded demo started with a fresh history, so every step does too
+        self.start_gripper_command = config.START_GRIPPER_COMMAND.get(key)
+        self.history.clear()
+        self.last_command = None
         queue: deque = deque()  # a new instruction never inherits commands planned for the old one
         ticks_left = round(duration * FPS)
         # safety cap if the GPU is very slow: the motion itself plus up to 10 s per FLUX request
@@ -218,6 +245,7 @@ def main() -> None:
     parser.add_argument("--start-delay", type=float, default=3.0,
                         help="seconds the arm holds still after the motors switch on, so hands can let go")
     parser.add_argument("--no-color-match", action="store_true", help="send the scene camera colors unchanged")
+    parser.add_argument("--reset", action="store_true", help="slowly move to config.START_POSE before running")
     args = parser.parse_args()
 
     if args.task not in config.INSTRUCTIONS.values():
@@ -235,6 +263,8 @@ def main() -> None:
             input(f"ARM WILL MOVE: {args.task!r}. Hand on the power switch? [Enter / Ctrl+C] ")
         print(f"Motors on, holding still for {args.start_delay:.0f} s. Let go of the arm now.", flush=True)
         time.sleep(args.start_delay)
+        if args.reset and not args.no_motion:
+            hands.move_to_start()
         hands.run(args.task, args.duration or hands._duration(args.task))
     except KeyboardInterrupt:
         print("\nStopped.")
