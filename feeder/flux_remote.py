@@ -270,7 +270,8 @@ def main() -> None:
     parser.add_argument("--start-delay", type=float, default=3.0,
                         help="seconds the arm holds still after the motors switch on, so hands can let go")
     parser.add_argument("--no-color-match", action="store_true", help="send the scene camera colors unchanged")
-    parser.add_argument("--reset", action="store_true", help="slowly move to config.START_POSE before running")
+    parser.add_argument("--no-reset", action="store_true",
+                        help="don't move to config.START_POSE first (default: always reset)")
     args = parser.parse_args()
 
     if args.task not in config.INSTRUCTIONS.values():
@@ -288,7 +289,7 @@ def main() -> None:
             input(f"ARM WILL MOVE: {args.task!r}. Hand on the power switch? [Enter / Ctrl+C] ")
         print(f"Motors on, holding still for {args.start_delay:.0f} s. Let go of the arm now.", flush=True)
         time.sleep(args.start_delay)
-        if args.reset and not args.no_motion:
+        if not args.no_reset and not args.no_motion:
             hands.move_to_start()
         hands.run(args.task, args.duration or hands._duration(args.task))
     except KeyboardInterrupt:

@@ -43,6 +43,7 @@ python -m feeder.chain --sim --bites 2                                    # simu
 python -m feeder.chain --server http://localhost:8001 --bites 3           # autonomous, arm moves
 python -m feeder.chain --server http://localhost:8001 --check             # a person judges / retries
 python -m feeder.flux_remote --task "Scoop food from the bowl" --no-motion  # one skill, arm stays still
+# every real run first moves slowly to the demo start pose (config.START_POSE); --no-reset skips it
 ```
 
 Safety in the bridge: 4°/tick rate limit between commands, 30° emergency limit, gripper held

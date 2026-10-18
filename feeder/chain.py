@@ -104,6 +104,8 @@ def main() -> None:
     parser.add_argument("--sim", action="store_true", help="no arm, no GPU: print the steps only")
     parser.add_argument("--yes", action="store_true", help="skip the keyboard confirmation (confirmed elsewhere)")
     parser.add_argument("--start-delay", type=float, default=3.0, help="seconds to let go of the arm")
+    parser.add_argument("--no-reset", action="store_true",
+                        help="don't move to config.START_POSE before the first bite (default: always reset)")
     parser.add_argument("--exec-steps", type=int, default=10,
                         help="actions executed per FLUX request before replanning (model predicts 32)")
     args = parser.parse_args()
@@ -126,6 +128,8 @@ def main() -> None:
                 input(f"ARM WILL MOVE for {args.bites} bites. Hand on the power switch? [Enter / Ctrl+C] ")
             print(f"Motors on, holding still for {args.start_delay:.0f} s. Let go of the arm now.", flush=True)
             time.sleep(args.start_delay)
+            if not args.no_reset:
+                hands.move_to_start()
         run_chain(hands, args.bites, args.check, args.max_retries, phase, checkpoint)
     except KeyboardInterrupt:
         hands.stop()
