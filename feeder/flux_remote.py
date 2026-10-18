@@ -47,9 +47,9 @@ class RemoteSettings:
     wrist_cam: str | int = 2
     max_step_deg: float = 4.0            # max change between consecutive commands, per joint per tick
     # FLUX predicts command deltas that the bridge integrates. When the arm can't follow (e.g. shoulder
-    # already at its stop) the integrated command drifts away, far outside the demos (leader within a few
-    # degrees of the follower). Keep the remembered command within this distance of the measured joints.
-    max_command_lead_deg: float = 6.0
+    # already at its stop) the integrated command drifts far outside the demos. Keep the remembered
+    # command within config.COMMAND_LEAD_LIMIT of the measured joints.
+    limit_command_lead: bool = True
     trajectory_dir: str = "results/runs"  # per-tick CSV of every run, for diagnosis (gitignored)
     # LeRobot's max_relative_target measures from the *present* position. Under gravity the shoulder sags
     # a few degrees below its goal, so a tight value there stalls the arm; keep it as a wide emergency brake.
@@ -223,8 +223,9 @@ class RemoteFluxHands:
                 queue.extend(self._request_chunk(task)[: self.s.exec_steps])
             command = queue.popleft()
             state = self.history[-1][0]
-            lead = self.s.max_command_lead_deg
-            command[:5] = np.clip(command[:5], state[:5] - lead, state[:5] + lead)
+            if self.s.limit_command_lead:
+                lead = np.array(config.COMMAND_LEAD_LIMIT, dtype=np.float32)
+                command[:5] = np.clip(command[:5], state[:5] - lead, state[:5] + lead)
             self.last_command = command
             if not self.s.no_motion:
                 step = self.s.max_step_deg

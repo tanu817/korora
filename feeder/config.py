@@ -26,6 +26,12 @@ START_POSE = (-5.5, -99.9, 96.4, 52.8, 1.3)
 COMMAND_OFFSET = (0.1, -2.0, -0.4, -0.35, -0.1)
 START_GRIPPER_COMMAND = {"scoop": 0.0, "to_mouth": 100.0, "feed": 0.0, "back_to_rest": 100.0}
 
+# Max distance (deg) FLUX's remembered command may lead the measured joints, per joint (pan, lift,
+# elbow, wrist_flex, wrist_roll): ~99.9th percentile of |leader - follower| in the demos. Stops the
+# integrated command from drifting when the arm can't follow, while leaving the scoop's wrist roll
+# room to push through the food.
+COMMAND_LEAD_LIMIT = (6.0, 8.0, 8.0, 7.0, 20.0)
+
 # Mean scene-camera RGB of each skill's training demos. The scene camera turned pink midway through
 # recording (scoop/to_mouth demos are yellowish, feed/back_to_rest pink), so the bridge rescales the live
 # scene colors to match the skill being run. Measured from ArnavG07/korora_spoon_feed.
